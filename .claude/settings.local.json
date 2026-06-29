@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la CLAUDE.md .cursorrules .github/copilot-instructions.md)",
+      "Bash(ls -la .cursor)",
+      "PowerShell(python --version)",
+      "PowerShell(py --version)",
+      "PowerShell(backend\\\\.venv\\\\Scripts\\\\python.exe -m pip install --upgrade pip --quiet)",
+      "PowerShell(backend\\\\.venv\\\\Scripts\\\\python.exe -m pip install -r backend\\\\requirements.txt)",
+      "PowerShell(backend\\\\.venv\\\\Scripts\\\\python.exe backend\\\\foundation_calc.py)",
+      "PowerShell(backend\\\\.venv\\\\Scripts\\\\python.exe -m uvicorn main:app --app-dir backend --host 127.0.0.1 --port 8000)",
+      "PowerShell(node -v)",
+      "PowerShell(npm -v)",
+      "PowerShell(npx --yes create-vite@latest frontend --template react 2>&1)",
+      "PowerShell(npm install --prefix frontend 2>&1)",
+      "PowerShell(npm run dev --prefix frontend)",
+      "PowerShell(npm install --prefix frontend @supabase/supabase-js 2>&1)"
+    ]
+  }
+}

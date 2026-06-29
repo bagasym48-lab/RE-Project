@@ -1,0 +1,6 @@
+fastapi==0.115.0
+uvicorn[standard]==0.31.0
+# pydantic 2.9.2 has no Python 3.14 wheel (pydantic-core/PyO3 build fails);
+# relaxed so pip picks a 2.x with a cp314 wheel. FastAPI 0.115 caps it <3.
+pydantic>=2.10,<3
+python-jose[cryptography]==3.3.0

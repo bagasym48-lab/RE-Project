@@ -1,0 +1,15 @@
+# Render Blueprint — backend FastAPI (frontend dideploy terpisah di Vercel).
+# Lihat DEPLOY.md untuk langkah lengkap.
+services:
+  - type: web
+    name: pondasi-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: CORS_ORIGINS
+        sync: false   # isi manual dengan URL Vercel (mis. https://namaapp.vercel.app)

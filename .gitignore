@@ -1,0 +1,14 @@
+# Rahasia / environment — jangan commit (.env.example tetap di-track)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Python — backend
+.venv/
+__pycache__/
+*.py[cod]
+
+# Node / Vite — frontend (saat sudah di-scaffold)
+node_modules/
+dist/
