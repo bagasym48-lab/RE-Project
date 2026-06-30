@@ -167,7 +167,7 @@ svg.draw { width: 100%; height: auto; display: block; background: linear-gradien
 .topnav .logout:hover { border-color: var(--ng); color: var(--ng); }
 
 /* ---------- Progress ---------- */
-.prog { max-width: 1180px; margin: 0 auto; padding: 18px; }
+.prog, .projects { max-width: 1180px; margin: 0 auto; padding: 22px 24px 60px; }
 .prog-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start; }
 @media (max-width: 900px) { .prog-grid { grid-template-columns: 1fr; } }
 
@@ -241,11 +241,6 @@ table.logs select, table.logs input { border: 1px solid var(--line-strong); bord
 /* Input nama tanda tangan laporan */
 .sign-input { display: flex; flex-direction: column; gap: 8px; }
 .sign-input h3 { font-size: 13px; color: var(--navy); margin: 0 0 2px; }
-
-/* ---------- Sub-tab Progress (Project | Kurva-S) ---------- */
-.prog-subtabs { display: flex; gap: 8px; margin: 0 0 14px; flex-wrap: wrap; }
-.prog-subtabs button { padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 9px; }
-.prog-subtabs button.active { background: var(--brand-grad); color: #fff; border-color: transparent; }
 
 /* ---------- Project: bar progress ---------- */
 .prog-bar { height: 12px; border-radius: 7px; background: var(--panel-2); overflow: hidden; margin: 10px 0 6px; }
