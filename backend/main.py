@@ -19,10 +19,13 @@ from foundation_calc import (
 
 app = FastAPI(title="Pondasi Dangkal API", version="1.0.0")
 
-# CORS — sesuaikan origin frontend di produksi
+# CORS — sesuaikan origin frontend di produksi.
+# Pisah koma + buang spasi/elemen kosong, supaya "a, b" atau "a," tidak diam-diam
+# membuat origin yang tak pernah cocok (penyebab umum blok CORS yang membingungkan).
+_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173").split(","),
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -102,6 +105,17 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
 
 
 # ---------- Endpoint ----------
+@app.get("/")
+def root():
+    """Halaman root — biar URL polos tidak terlihat seperti error 'Not Found'."""
+    return {
+        "service": "Pondasi Dangkal API",
+        "status": "ok",
+        "docs": "/docs",
+        "endpoints": ["/health", "/calculate"],
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}

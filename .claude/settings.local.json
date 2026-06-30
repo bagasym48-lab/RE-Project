@@ -14,7 +14,8 @@
       "PowerShell(npx --yes create-vite@latest frontend --template react 2>&1)",
       "PowerShell(npm install --prefix frontend 2>&1)",
       "PowerShell(npm run dev --prefix frontend)",
-      "PowerShell(npm install --prefix frontend @supabase/supabase-js 2>&1)"
+      "PowerShell(npm install --prefix frontend @supabase/supabase-js 2>&1)",
+      "Bash(curl -s \"https://re-project-app.vercel.app/\")"
     ]
   }
 }

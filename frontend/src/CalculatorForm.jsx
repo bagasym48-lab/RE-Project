@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import FoundationSketch from './FoundationSketch.jsx';
 import DesignPanel from './DesignPanel.jsx';
+import { LogoMark } from './Logo.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -245,9 +246,119 @@ export default function CalculatorForm({ userId }) {
               </p>
             </div>
           )}
+          {result && (
+            <button className="print-btn" onClick={() => window.print()}>
+              🖨️ Cetak / Simpan PDF (A4)
+            </button>
+          )}
           <DesignPanel userId={userId} fd={fd} soil={soil} lcs={lcs} result={result} onLoad={loadDesign} />
         </aside>
       </div>
+
+      {result && <ReportSheet fd={fd} soil={soil} lcs={lcs} result={result} />}
+    </div>
+  );
+}
+
+// ReportSheet — laporan A4 untuk dicetak/disimpan PDF. Disembunyikan di layar
+// (display:none), hanya tampil di @media print. Lihat .report-sheet di index.css.
+function ReportSheet({ fd, soil, lcs, result }) {
+  const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  const kv = (rows, src) => (
+    <div className="rpt-kv">
+      {rows.map(([k, l]) => (
+        <div key={k} className="rpt-kv-item"><span>{l}</span><b>{src[k]}</b></div>
+      ))}
+    </div>
+  );
+  return (
+    <div className="report-sheet">
+      <header className="rpt-head">
+        <div className="rpt-brand">
+          <LogoMark size={48} />
+          <div>
+            <h1>Laporan Kalkulasi Pondasi Dangkal</h1>
+            <p>Telapak (footing) · SNI 2847:2019 · Terzaghi–Krizek · Steinbrenner</p>
+            <p className="rpt-date">Tanggal cetak: {today}</p>
+          </div>
+        </div>
+        <div className={`rpt-verdict ${result.overall_ok ? 'ok' : 'ng'}`}>
+          {result.overall_ok ? 'AMAN' : 'TIDAK AMAN'}
+        </div>
+      </header>
+
+      <section className="rpt-section">
+        <h2>1. Data input</h2>
+        <h3>1.1 Dimensi pondasi (mm)</h3>
+        {kv(DIMENSI, fd)}
+        <h3>1.2 Material &amp; faktor</h3>
+        {kv(MATERIAL, fd)}
+        <h3>1.3 Parameter tanah</h3>
+        {kv(SOIL, soil)}
+        <h3>1.4 Load case — reaksi tumpuan ASD (kN, kNm)</h3>
+        <table className="rpt-table">
+          <thead>
+            <tr><th>Nama</th><th>FY</th><th>FX</th><th>FZ</th><th>MX</th><th>MZ</th></tr>
+          </thead>
+          <tbody>
+            {lcs.map((lc, i) => (
+              <tr key={i}>
+                <td>{lc.nama}</td>
+                <td className="num">{lc.FY}</td><td className="num">{lc.FX}</td><td className="num">{lc.FZ}</td>
+                <td className="num">{lc.MX}</td><td className="num">{lc.MZ}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="rpt-section">
+        <h2>2. Sketsa pondasi</h2>
+        <div className="rpt-sketch"><FoundationSketch fd={fd} /></div>
+      </section>
+
+      <section className="rpt-section">
+        <h2>3. Hasil analisis</h2>
+        <p className="rpt-terz">
+          Daya dukung Terzaghi: q<sub>all</sub> = <b>{result.terzaghi.qall.toFixed(2)} kPa</b> ·
+          q<sub>u</sub> = {result.terzaghi.qu.toFixed(2)} kPa ·
+          N<sub>c</sub>/N<sub>q</sub>/N<sub>γ</sub> = {result.terzaghi.Nc.toFixed(1)}/{result.terzaghi.Nq.toFixed(1)}/{result.terzaghi.Ng.toFixed(1)}
+        </p>
+        <table className="rpt-table rpt-checks">
+          <thead>
+            <tr><th>Pengecekan</th><th>Demand</th><th>Kapasitas</th><th>Rasio</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {Object.entries(result.checks).map(([k, v]) => (
+              <tr key={k}>
+                <td>{LABELS[k] || k}{v.lc ? ` · ${v.lc}` : ''}</td>
+                <td className="num">{v.demand.toFixed(2)}</td>
+                <td className="num">{v.kapasitas.toFixed(2)}</td>
+                <td className="num">{v.rasio.toFixed(2)}</td>
+                <td className={`st ${v.ok ? 'ok' : 'ng'}`}>{v.ok ? 'OK' : 'NG'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="rpt-settle">
+          Penurunan (settlement): Si {result.settlement.Si.toFixed(2)} + Sc1 {result.settlement.Sc1.toFixed(2)} + Sc2 {result.settlement.Sc2.toFixed(2)} =
+          <b> {result.settlement.Stot.toFixed(2)} mm</b> —
+          <span className={`st ${result.settlement.ok ? 'ok' : 'ng'}`}> {result.settlement.ok ? 'OK (< 25 mm)' : 'NG (≥ 25 mm)'}</span>
+        </p>
+        <p className="rpt-concl">
+          Kesimpulan: <b>{result.overall_ok ? 'Pondasi dinyatakan AMAN' : 'Pondasi TIDAK AMAN'}</b> terhadap seluruh pengecekan struktur, stabilitas, dan penurunan.
+        </p>
+      </section>
+
+      <footer className="rpt-foot">
+        <p className="rpt-disc">
+          ⚠️ Hasil perhitungan ini merupakan alat bantu edukasi dan <b>wajib diverifikasi oleh insinyur sipil berlisensi</b> sebelum digunakan untuk konstruksi.
+        </p>
+        <div className="rpt-sign">
+          <div><span>Dihitung oleh</span><div className="rpt-line" /></div>
+          <div><span>Diperiksa oleh</span><div className="rpt-line" /></div>
+        </div>
+      </footer>
     </div>
   );
 }

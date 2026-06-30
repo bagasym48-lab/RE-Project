@@ -229,3 +229,73 @@ table.logs select, table.logs input { border: 1px solid var(--line-strong); bord
 .design-row:last-child { border-bottom: none; }
 .design-row .dn { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* ---------- Tombol cetak ---------- */
+.print-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  border-radius: 9px; border: 1px solid var(--line-strong); background: #fff; color: var(--navy);
+}
+.print-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- Laporan PDF (A4) ----------
+   Disembunyikan di layar; hanya muncul saat cetak (lihat @media print di bawah).
+   Style visual ditaruh global karena .report-sheet display:none di layar. */
+.report-sheet { display: none; color: #111; }
+.rpt-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+  padding-bottom: 10px; border-bottom: 2px solid var(--navy); margin-bottom: 14px; }
+.rpt-brand { display: flex; gap: 12px; align-items: center; }
+.rpt-brand img { height: 48px; width: auto; }
+.rpt-head h1 { font-size: 17px; margin: 0 0 2px; color: var(--navy); }
+.rpt-head p { margin: 0; font-size: 10.5px; color: #444; }
+.rpt-head .rpt-date { margin-top: 3px; font-weight: 600; }
+.rpt-verdict { white-space: nowrap; font-weight: 800; font-size: 13px; letter-spacing: .05em;
+  color: #fff; padding: 8px 14px; border-radius: 8px; }
+.rpt-verdict.ok { background: linear-gradient(135deg, #2f9e44, #1a9aa0); }
+.rpt-verdict.ng { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+
+.rpt-section { margin-bottom: 14px; }
+.rpt-section h2 { font-size: 13.5px; color: var(--navy); margin: 0 0 8px; padding-bottom: 3px;
+  border-bottom: 1px solid var(--line-strong); break-after: avoid; }
+.rpt-section h3 { font-size: 11.5px; color: #334; margin: 10px 0 5px; break-after: avoid; }
+
+.rpt-kv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px 16px; break-inside: avoid; }
+.rpt-kv-item { display: flex; justify-content: space-between; gap: 8px; font-size: 10px;
+  border-bottom: 1px dotted var(--line-strong); padding: 2px 0; }
+.rpt-kv-item span { color: #556; }
+.rpt-kv-item b { color: #111; font-variant-numeric: tabular-nums; }
+
+table.rpt-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 4px; break-inside: avoid; }
+table.rpt-table th { background: #eef3f8; text-align: left; font-weight: 700; color: var(--navy);
+  border: 1px solid var(--line-strong); padding: 4px 6px; }
+table.rpt-table td { border: 1px solid var(--line); padding: 3px 6px; }
+table.rpt-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.rpt-table tr { break-inside: avoid; }
+
+.rpt-sketch { break-inside: avoid; }
+.rpt-sketch .sketch { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rpt-sketch svg.draw { background: #fff; }
+
+.rpt-terz { font-size: 10.5px; margin: 0 0 6px; }
+.rpt-settle { font-size: 10.5px; margin: 8px 0 4px; }
+.rpt-concl { font-size: 11px; margin: 4px 0 0; }
+.rpt-foot { margin-top: 16px; border-top: 1px solid var(--line-strong); padding-top: 8px; break-inside: avoid; }
+.rpt-disc { font-size: 9.5px; color: #7c2d12; background: #fff7ed; border: 1px solid #fed7aa;
+  padding: 6px 8px; border-radius: 6px; margin: 0 0 14px; }
+.rpt-sign { display: flex; gap: 48px; margin-top: 18px; }
+.rpt-sign > div { flex: 1; text-align: center; }
+.rpt-sign span { font-size: 10px; color: #556; }
+.rpt-line { margin-top: 34px; border-top: 1px solid #333; }
+
+/* ---------- Aturan cetak ---------- */
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html, body { background: #fff !important; }
+  body { font-size: 10.5px; color: #111; }
+  /* sembunyikan seluruh UI aplikasi, tampilkan hanya laporan */
+  .topnav, .app > .head, .app > .layout { display: none !important; }
+  .app { max-width: none; margin: 0; padding: 0; }
+  .report-sheet { display: block !important; }
+  /* paksa warna (badge & gradien sketsa) ikut tercetak */
+  .report-sheet, .report-sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
