@@ -129,9 +129,12 @@ docs / total × 100%. The two new tables and the trigger must be run in the Supa
 (they are appended to `schema.sql`).
 
 ### App shell / dashboard (`frontend/src/Shell.jsx`)
-After login, `App` renders **`Shell`** — a dashboard with a dark **discipline sidebar**
-(Dashboard + Civil/Mechanical/Process/Piping). `Dashboard.jsx` is the landing (discipline
-cards + Civil quick-access). **Only `Civil` is built**: `CivilView.jsx` hosts the three tools
+After login, `App` renders **`Shell`** — an EPC dashboard with a dark **discipline sidebar**
+(Dashboard + disiplin + Project/Tools sections, with badges). `Dashboard.jsx` is the landing:
+top-bar (greeting/search), stat cards, Quick Actions, interactive discipline cards, and
+**Recent Project / Recent Calculation read live from Supabase** (`projects` / `foundation_designs`).
+SVG icons come from `Icons.jsx` (`<Ic name=… />`). Only Civil's tools work; other disciplines and
+the Template/Favorites/Recycle-Bin items render a "segera hadir" placeholder. **Only `Civil` is built**: `CivilView.jsx` hosts the three tools
 (`CalculatorForm`, `MtoPage`, `ProgressPage`) under pill sub-tabs. The other disciplines render
 a "segera hadir" placeholder. Tool components keep their own `.app`/`.projects` containers; CSS
 neutralises their max-width/padding inside `.civil-body`. Print CSS hides `.ds-side`/`.civil-head`
