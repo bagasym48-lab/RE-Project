@@ -128,6 +128,15 @@ blocks engineers from ACC-ing and QC from editing submissions. Project progress 
 docs / total × 100%. The two new tables and the trigger must be run in the Supabase SQL editor
 (they are appended to `schema.sql`).
 
+### App shell / dashboard (`frontend/src/Shell.jsx`)
+After login, `App` renders **`Shell`** — a dashboard with a dark **discipline sidebar**
+(Dashboard + Civil/Mechanical/Process/Piping). `Dashboard.jsx` is the landing (discipline
+cards + Civil quick-access). **Only `Civil` is built**: `CivilView.jsx` hosts the three tools
+(`CalculatorForm`, `MtoPage`, `ProgressPage`) under pill sub-tabs. The other disciplines render
+a "segera hadir" placeholder. Tool components keep their own `.app`/`.projects` containers; CSS
+neutralises their max-width/padding inside `.civil-body`. Print CSS hides `.ds-side`/`.civil-head`
+so the A4 report still prints clean.
+
 ### MTO (`frontend/src/MtoPage.jsx`)
 A third top-nav tab (after Kalkulator/Progress) for **Material Take-Off** — pure-frontend
 calculators (no backend/DB). Two sub-tabs: **Pondasi Dangkal** (concrete volume + rebar weight
