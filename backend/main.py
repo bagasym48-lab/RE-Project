@@ -47,14 +47,15 @@ class SoilIn(BaseModel):
     c: float = 0.0
     gs: float = 18.0
     gw: float = 9.81
-    xi_c: float = 1.30
-    xi_q: float = 1.30
+    # ξc & ξq otomatis dari B/L bila None (lihat foundation_calc.terzaghi_qall)
+    xi_c: Optional[float] = None
+    xi_q: Optional[float] = None
     xi_g: float = 0.69
     Es: float = 12000.0
     mu: float = 0.30
     e0: float = 0.50
     Cc: float = 0.12
-    Cs: float = 0.0116
+    Cs: Optional[float] = None   # otomatis = Cc/10 bila None
     Po: float = 9314.6
     dP: float = 466.1
     h1: float = 1.5

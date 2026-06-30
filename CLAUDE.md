@@ -64,9 +64,16 @@ Domain specifics worth knowing before editing the math:
 - Bearing capacity is evaluated **per load case**; the worst (highest `sigma_max`) governs.
   Several checks similarly scan all load cases for the governing one.
 - Two-way (punching) shear uses the **critical section at d/2** from the pedestal face.
-- Calibration constants are **intentionally inputs, not hardcoded**, so engineers can retune:
-  Terzaghi shape factor `xi_g` (≈0.69 calibrated to the document) and the settlement graph
-  factors `I1`/`I2`/`If` live in `Soil` with defaults. Don't hardcode them back.
+- Some `Soil` coefficients are **auto-derived when left `None`, but still override-able** (an
+  engineer can pass an explicit value to retune). Defaults are `None`:
+  - `xi_c`, `xi_q` (Terzaghi shape factors) → `1 + 0.3·(min(B,L)/max(B,L))` in `terzaghi_qall`.
+    For the square reference case this is exactly `1.30`, so the document calibration is
+    **unchanged**. `terzaghi_qall` returns the resolved `xi_c`/`xi_q`/`xi_g` for the UI to show.
+  - `Cs` (swelling index) → `Cc/10` in `settlement` (returns resolved `Cs`). Standard ratio;
+    previously `Cc` was an unused input — now it feeds `Cs`.
+- Still **explicit inputs** (no clean/safe auto-derivation): `xi_g` (≈0.69, the document
+  calibration knob), `Cc` (lab-measured), and settlement graph factors `I1`/`I2`/`If`.
+  Don't hardcode any of these back to literals.
 
 ### Units are mixed and load-bearing (common footgun)
 - Foundation dimensions (`B`, `L`, `h`, `Df`, `c1`, `c2`, …): **millimeters**.

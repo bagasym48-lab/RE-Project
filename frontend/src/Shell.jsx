@@ -25,7 +25,7 @@ export default function Shell({ session, profile, onLogout }) {
       </div>
 
       {tab === 'calc'
-        ? <CalculatorForm userId={session.user.id} />
+        ? <CalculatorForm userId={session.user.id} profile={profile} userEmail={session.user.email} />
         : <ProgressPage userId={session.user.id} role={role} />}
     </>
   );

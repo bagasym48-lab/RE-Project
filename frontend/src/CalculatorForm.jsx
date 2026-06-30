@@ -1,7 +1,7 @@
 // CalculatorForm.jsx — form lengkap kalkulator pondasi dangkal.
 // Mengirim POST /calculate ke backend FastAPI dan menampilkan hasil + sketsa.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import FoundationSketch from './FoundationSketch.jsx';
 import DesignPanel from './DesignPanel.jsx';
 import { LogoMark } from './Logo.jsx';
@@ -16,8 +16,8 @@ const defaultFoundation = {
 };
 const defaultSoil = {
   phi: 30, c: 0, gs: 18, gw: 9.81,
-  xi_c: 1.30, xi_q: 1.30, xi_g: 0.69,
-  Es: 12000, mu: 0.30, e0: 0.50, Cc: 0.12, Cs: 0.0116,
+  xi_g: 0.69,
+  Es: 12000, mu: 0.30, e0: 0.50, Cc: 0.12,
   Po: 9314.6, dP: 466.1, h1: 1.5, h2: 3.0,
   I1: 0.363, I2: 0.048, If: 0.53,
 };
@@ -40,12 +40,14 @@ const MATERIAL = [
   ['n_pedestal', 'jumlah pedestal'], ['alphas', 'αs (20/30/40)'],
   ['mu_fric', 'koef. gesek dasar'], ['SF_bc', 'SF daya dukung'],
 ];
+// Catatan: ξc, ξq, dan Cs TIDAK diinput — dihitung otomatis di backend
+// (ξc/ξq = 1 + 0.3·B/L; Cs = Cc/10). Mengurangi input & kesalahan teori.
 const SOIL = [
   ['phi', 'φ sudut geser (°)'], ['c', 'c kohesi (kPa)'],
   ['gs', 'γ tanah (kN/m³)'], ['gw', 'γ air (kN/m³)'],
-  ['xi_c', 'ξc bentuk'], ['xi_q', 'ξq bentuk'], ['xi_g', 'ξγ bentuk'],
+  ['xi_g', 'ξγ bentuk'],
   ['Es', 'Es (kPa)'], ['mu', 'μ poisson'], ['e0', 'e0 angka pori'],
-  ['Cc', 'Cc kompresi'], ['Cs', 'Cs swelling'],
+  ['Cc', 'Cc kompresi'],
   ['Po', 'Po (kg/m²)'], ['dP', 'Δσ (kg/m²)'],
   ['h1', 'h1 (m)'], ['h2', 'h2 (m)'],
   ['I1', 'I1 Steinbrenner'], ['I2', 'I2 Steinbrenner'], ['If', 'If kedalaman'],
@@ -68,13 +70,21 @@ function Field({ k, label, value, onChange, ...rest }) {
   );
 }
 
-export default function CalculatorForm({ userId }) {
+export default function CalculatorForm({ userId, profile, userEmail }) {
   const [fd, setFd] = useState(defaultFoundation);
   const [soil, setSoil] = useState(defaultSoil);
   const [lcs, setLcs] = useState(defaultLCs);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Nama untuk kolom tanda tangan laporan. "Dihitung oleh" otomatis terisi nama
+  // user yang login (boleh diubah); "Diperiksa oleh" (QC) diisi manual.
+  const [engineerName, setEngineerName] = useState('');
+  const [qcName, setQcName] = useState('');
+  useEffect(() => {
+    const nm = profile?.nama || userEmail;
+    if (nm) setEngineerName((cur) => cur || nm);
+  }, [profile, userEmail]);
 
   const upd = (setter) => (k, v) => setter((s) => ({ ...s, [k]: v }));
   const updFd = upd(setFd);
@@ -223,6 +233,12 @@ export default function CalculatorForm({ userId }) {
                 q<sub>all</sub> = {result.terzaghi.qall.toFixed(2)} kPa · q<sub>u</sub> = {result.terzaghi.qu.toFixed(2)} kPa
                 · Nc/Nq/Nγ = {result.terzaghi.Nc.toFixed(1)}/{result.terzaghi.Nq.toFixed(1)}/{result.terzaghi.Ng.toFixed(1)}
               </p>
+              {result.terzaghi.xi_c != null && (
+                <p className="terz">
+                  ξc/ξq/ξγ = {result.terzaghi.xi_c.toFixed(2)}/{result.terzaghi.xi_q.toFixed(2)}/{result.terzaghi.xi_g.toFixed(2)}
+                  <span className="lc-tag"> · ξc, ξq otomatis dari B/L</span>
+                </p>
+              )}
               <table className="res">
                 <thead>
                   <tr><th>Pengecekan</th><th>Demand</th><th>Kapasitas</th><th>Rasio</th><th>Status</th></tr>
@@ -247,6 +263,19 @@ export default function CalculatorForm({ userId }) {
             </div>
           )}
           {result && (
+            <div className="card sign-input">
+              <h3>Tanda tangan laporan</h3>
+              <label className="field">
+                <span>Dihitung oleh (engineer)</span>
+                <input value={engineerName} onChange={(e) => setEngineerName(e.target.value)} placeholder="Nama engineer" />
+              </label>
+              <label className="field">
+                <span>Diperiksa oleh (QC)</span>
+                <input value={qcName} onChange={(e) => setQcName(e.target.value)} placeholder="Nama QC" />
+              </label>
+            </div>
+          )}
+          {result && (
             <button className="print-btn" onClick={() => window.print()}>
               🖨️ Cetak / Simpan PDF (A4)
             </button>
@@ -255,14 +284,14 @@ export default function CalculatorForm({ userId }) {
         </aside>
       </div>
 
-      {result && <ReportSheet fd={fd} soil={soil} lcs={lcs} result={result} />}
+      {result && <ReportSheet fd={fd} soil={soil} lcs={lcs} result={result} engineerName={engineerName} qcName={qcName} />}
     </div>
   );
 }
 
 // ReportSheet — laporan A4 untuk dicetak/disimpan PDF. Disembunyikan di layar
 // (display:none), hanya tampil di @media print. Lihat .report-sheet di index.css.
-function ReportSheet({ fd, soil, lcs, result }) {
+function ReportSheet({ fd, soil, lcs, result, engineerName, qcName }) {
   const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const kv = (rows, src) => (
     <div className="rpt-kv">
@@ -324,6 +353,12 @@ function ReportSheet({ fd, soil, lcs, result }) {
           q<sub>u</sub> = {result.terzaghi.qu.toFixed(2)} kPa ·
           N<sub>c</sub>/N<sub>q</sub>/N<sub>γ</sub> = {result.terzaghi.Nc.toFixed(1)}/{result.terzaghi.Nq.toFixed(1)}/{result.terzaghi.Ng.toFixed(1)}
         </p>
+        {result.terzaghi.xi_c != null && (
+          <p className="rpt-terz">
+            Faktor bentuk (ξ<sub>c</sub>, ξ<sub>q</sub> otomatis = 1 + 0,3·B/L):
+            ξ<sub>c</sub> = {result.terzaghi.xi_c.toFixed(2)} · ξ<sub>q</sub> = {result.terzaghi.xi_q.toFixed(2)} · ξ<sub>γ</sub> = {result.terzaghi.xi_g.toFixed(2)}
+          </p>
+        )}
         <table className="rpt-table rpt-checks">
           <thead>
             <tr><th>Pengecekan</th><th>Demand</th><th>Kapasitas</th><th>Rasio</th><th>Status</th></tr>
@@ -344,6 +379,7 @@ function ReportSheet({ fd, soil, lcs, result }) {
           Penurunan (settlement): Si {result.settlement.Si.toFixed(2)} + Sc1 {result.settlement.Sc1.toFixed(2)} + Sc2 {result.settlement.Sc2.toFixed(2)} =
           <b> {result.settlement.Stot.toFixed(2)} mm</b> —
           <span className={`st ${result.settlement.ok ? 'ok' : 'ng'}`}> {result.settlement.ok ? 'OK (< 25 mm)' : 'NG (≥ 25 mm)'}</span>
+          {result.settlement.Cs != null && <span className="lc-tag"> · Cs = {result.settlement.Cs.toFixed(4)} (otomatis = Cc/10)</span>}
         </p>
         <p className="rpt-concl">
           Kesimpulan: <b>{result.overall_ok ? 'Pondasi dinyatakan AMAN' : 'Pondasi TIDAK AMAN'}</b> terhadap seluruh pengecekan struktur, stabilitas, dan penurunan.
@@ -355,8 +391,18 @@ function ReportSheet({ fd, soil, lcs, result }) {
           ⚠️ Hasil perhitungan ini merupakan alat bantu edukasi dan <b>wajib diverifikasi oleh insinyur sipil berlisensi</b> sebelum digunakan untuk konstruksi.
         </p>
         <div className="rpt-sign">
-          <div><span>Dihitung oleh</span><div className="rpt-line" /></div>
-          <div><span>Diperiksa oleh</span><div className="rpt-line" /></div>
+          <div>
+            <span>Dihitung oleh</span>
+            <div className="rpt-line" />
+            <div className="rpt-name">{engineerName ? `( ${engineerName} )` : ' '}</div>
+            <div className="rpt-role">Engineer</div>
+          </div>
+          <div>
+            <span>Diperiksa oleh</span>
+            <div className="rpt-line" />
+            <div className="rpt-name">{qcName ? `( ${qcName} )` : ' '}</div>
+            <div className="rpt-role">QC</div>
+          </div>
         </div>
       </footer>
     </div>

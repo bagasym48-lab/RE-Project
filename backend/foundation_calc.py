@@ -38,16 +38,18 @@ class Soil:
     c: float = 0.0           # kohesi (kPa)
     gs: float = 18.0         # berat jenis tanah (kN/m3)
     gw: float = 9.81         # berat jenis air (kN/m3)
-    # faktor bentuk Terzaghi (bisa diinput; default kalibrasi square)
-    xi_c: float = 1.30
-    xi_q: float = 1.30
+    # Faktor bentuk Terzaghi. ξc & ξq DIHITUNG OTOMATIS dari rasio sisi B/L
+    # (Terzaghi-Krizek: ξ = 1 + 0.3·B/L) bila None. Isi nilai untuk override.
+    # ξγ tetap input — knob kalibrasi dokumen (lihat CLAUDE.md).
+    xi_c: Optional[float] = None
+    xi_q: Optional[float] = None
     xi_g: float = 0.69
     # settlement
     Es: float = 12000.0      # modulus tanah (kPa)
     mu: float = 0.30         # poisson
     e0: float = 0.50
-    Cc: float = 0.12
-    Cs: float = 0.0116
+    Cc: float = 0.12         # indeks kompresi — properti terukur lab (tetap input)
+    Cs: Optional[float] = None   # indeks swelling — auto = Cc/10 bila None
     Po: float = 9314.6       # tekanan overburden efektif (kg/m2)
     dP: float = 466.1        # tegangan tambahan (kg/m2)
     h1: float = 1.5          # tebal lapisan (m)
@@ -87,12 +89,19 @@ def terzaghi_qall(fd: Foundation, soil: Soil) -> dict:
     Nc = (228 + 4.3 * phi) / (40 - phi)
     Nq = (40 + 5 * phi) / (40 - phi)
     Ng = (6 * phi) / (40 - phi)
+    # Faktor bentuk otomatis dari rasio sisi (Terzaghi-Krizek): ξ = 1 + 0.3·(B/L),
+    # B = sisi pendek, L = sisi panjang. Strip (B≪L)→1.0; bujur sangkar (B=L)→1.3.
+    # None = auto; nilai eksplisit = override engineer.
+    side_ratio = min(fd.B, fd.L) / max(fd.B, fd.L) if max(fd.B, fd.L) else 1.0
+    xi_c = soil.xi_c if soil.xi_c is not None else 1 + 0.3 * side_ratio
+    xi_q = soil.xi_q if soil.xi_q is not None else 1 + 0.3 * side_ratio
+    xi_g = soil.xi_g
     q = (soil.gs - soil.gw) * (fd.Df / 1000)        # surcharge efektif
-    qu = (soil.c * Nc * soil.xi_c +
-          q * Nq * soil.xi_q +
-          0.5 * soil.gs * (fd.B / 1000) * Ng * soil.xi_g)
+    qu = (soil.c * Nc * xi_c +
+          q * Nq * xi_q +
+          0.5 * soil.gs * (fd.B / 1000) * Ng * xi_g)
     qall = qu / fd.SF_bc
-    return dict(Nc=Nc, Nq=Nq, Ng=Ng, qu=qu, qall=qall)
+    return dict(Nc=Nc, Nq=Nq, Ng=Ng, qu=qu, qall=qall, xi_c=xi_c, xi_q=xi_q, xi_g=xi_g)
 
 
 # ============================================================
@@ -210,11 +219,14 @@ def settlement(fd: Foundation, soil: Soil, q0: float) -> dict:
     Si = q0 * B * (1 - mu ** 2) / soil.Es * Is * soil.If * 4
     Si_mm = Si * 1000
 
+    # Cs otomatis = Cc/10 (rasio baku Cs ≈ Cc/5…Cc/10) bila tidak di-override.
+    Cs = soil.Cs if soil.Cs is not None else soil.Cc / 10.0
+
     H_layer = 0.5 + soil.h1
-    Sc1 = (soil.Cs * H_layer) / (1 + soil.e0) * math.log10((soil.Po + soil.dP) / soil.Po)
-    Sc2 = (soil.Cs * soil.h2) / (1 + soil.e0) * math.log10((soil.Po + soil.dP) / soil.Po)
+    Sc1 = (Cs * H_layer) / (1 + soil.e0) * math.log10((soil.Po + soil.dP) / soil.Po)
+    Sc2 = (Cs * soil.h2) / (1 + soil.e0) * math.log10((soil.Po + soil.dP) / soil.Po)
     Stot = (Si_mm + Sc1 * 1000 + Sc2 * 1000)
-    return dict(Si=Si_mm, Sc1=Sc1 * 1000, Sc2=Sc2 * 1000, Stot=Stot, ok=Stot < 25)
+    return dict(Si=Si_mm, Sc1=Sc1 * 1000, Sc2=Sc2 * 1000, Stot=Stot, ok=Stot < 25, Cs=Cs)
 
 
 # ============================================================
