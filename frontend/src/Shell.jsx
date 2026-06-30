@@ -88,7 +88,7 @@ export default function Shell({ session, profile, onLogout }) {
             <b title={nama}>{nama}</b>
             <span className={`role role-${role}`}>{role}</span>
           </div>
-          <button className="ds-logout" onClick={onLogout} title="Keluar"><Ic name="settings" size={16} /></button>
+          <button className="ds-logout" onClick={onLogout} title="Keluar"><Ic name="logout" size={16} /></button>
         </div>
       </aside>
 

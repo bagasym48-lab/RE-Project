@@ -26,6 +26,7 @@ const P = {
   arrow: 'M5 12h14M13 6l6 6-6 6',
   excel: 'M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM9 11l6 6M15 11l-6 6',
   flame: 'M12 3s5 4 5 9a5 5 0 0 1-10 0c0-2 1-3 1-3s0 2 2 2c1.5 0 1-3 1-5 .5 0 0 0 0 0z',
+  logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
 };
 
 export default function Ic({ name, size = 18, fill = false }) {

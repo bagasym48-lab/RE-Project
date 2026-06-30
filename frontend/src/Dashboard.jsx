@@ -39,6 +39,7 @@ export default function Dashboard({ nama, userId, onOpen }) {
   const [designs, setDesigns] = useState([]);
   const [counts, setCounts] = useState({ proj: 0, design: 0 });
   const [q, setQ] = useState('');
+  const [pop, setPop] = useState(null); // 'notif' | 'help' | null
 
   useEffect(() => {
     (async () => {
@@ -70,7 +71,16 @@ export default function Dashboard({ nama, userId, onOpen }) {
     { icon: 'clock', label: 'Buka Terakhir', onClick: () => onOpen('civil', 'calc') },
   ];
 
-  const tools = CIVIL_TOOLS.filter((t) => !q || (t.label + t.desc).toLowerCase().includes(q.toLowerCase()));
+  const ql = q.trim().toLowerCase();
+  const match = (s) => !ql || (s || '').toLowerCase().includes(ql);
+  const tools = CIVIL_TOOLS.filter((t) => match(t.label + ' ' + t.desc));
+  const fProjects = projects.filter((p) => match(p.nama + ' ' + (p.deskripsi || '')));
+  const fDesigns = designs.filter((d) => match(d.nama));
+
+  function onSearchKey(e) {
+    if (e.key === 'Enter' && tools[0]) onOpen('civil', tools[0].tool);
+    if (e.key === 'Escape') setQ('');
+  }
 
   return (
     <div className="dash fade-in">
@@ -83,11 +93,34 @@ export default function Dashboard({ nama, userId, onOpen }) {
         <div className="dash-actions">
           <div className="dash-search">
             <Ic name="search" size={17} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari tools, project, kalkulasi…" />
-            <kbd>Ctrl + K</kbd>
+            <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onSearchKey} placeholder="Cari tools, project, kalkulasi…" />
+            {q && <button className="search-clear" title="Hapus" onClick={() => setQ('')}>✕</button>}
           </div>
-          <button className="icon-btn" title="Notifikasi"><Ic name="bell" size={18} /><span className="dot">3</span></button>
-          <button className="icon-btn" title="Bantuan"><Ic name="help" size={18} /></button>
+
+          <div className="icon-pop-wrap">
+            <button className={`icon-btn ${pop === 'notif' ? 'active' : ''}`} title="Notifikasi" onClick={() => setPop(pop === 'notif' ? null : 'notif')}>
+              <Ic name="bell" size={18} /><span className="dot">3</span>
+            </button>
+            {pop === 'notif' && (
+              <div className="pop" onClick={(e) => e.stopPropagation()}>
+                <div className="pop-head"><Ic name="bell" size={16} /> Notifikasi</div>
+                <p>Kita akan memberitahumu ketika ada informasi baru.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="icon-pop-wrap">
+            <button className={`icon-btn ${pop === 'help' ? 'active' : ''}`} title="Bantuan" onClick={() => setPop(pop === 'help' ? null : 'help')}>
+              <Ic name="help" size={18} />
+            </button>
+            {pop === 'help' && (
+              <div className="pop" onClick={(e) => e.stopPropagation()}>
+                <div className="pop-head"><Ic name="help" size={16} /> Bantuan</div>
+                <p>Jika ada kendala hubungi admin: <b>Bagas Yoga Mahendra</b></p>
+                <p>email: <a href="mailto:bagasym48@gmail.com">bagasym48@gmail.com</a></p>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -159,7 +192,7 @@ export default function Dashboard({ nama, userId, onOpen }) {
         <section className="dash-panel">
           <div className="panel-head"><h2><Ic name="folder" size={17} /> Recent Project</h2><button className="link-btn" onClick={() => onOpen('civil', 'progress')}>Lihat Semua →</button></div>
           <div className="rp-list">
-            {projects.length === 0 ? <p className="role-hint">Belum ada project. Buat di tab Progress.</p> : projects.map((p) => {
+            {fProjects.length === 0 ? <p className="role-hint">{projects.length ? `Tidak ada project cocok "${q}".` : 'Belum ada project. Buat di tab Progress.'}</p> : fProjects.map((p) => {
               const overdue = p.target_date && new Date(p.target_date) < new Date();
               return (
                 <button key={p.id} className="rp-item" onClick={() => onOpen('civil', 'progress')}>
@@ -175,7 +208,7 @@ export default function Dashboard({ nama, userId, onOpen }) {
         <section className="dash-panel">
           <div className="panel-head"><h2><Ic name="calc" size={17} /> Recent Calculation</h2><button className="link-btn" onClick={() => onOpen('civil', 'calc')}>Lihat Semua →</button></div>
           <div className="rp-list">
-            {designs.length === 0 ? <p className="role-hint">Belum ada desain tersimpan.</p> : designs.map((d) => (
+            {fDesigns.length === 0 ? <p className="role-hint">{designs.length ? `Tidak ada kalkulasi cocok "${q}".` : 'Belum ada desain tersimpan.'}</p> : fDesigns.map((d) => (
               <button key={d.id} className="rp-item" onClick={() => onOpen('civil', 'calc')}>
                 <span className="rp-ico"><Ic name="calc" size={18} /></span>
                 <span className="rp-txt"><b>{d.nama}</b><small>{fmtDate(d.created_at)}</small></span>
@@ -190,6 +223,8 @@ export default function Dashboard({ nama, userId, onOpen }) {
         <span><b>RE-PROJECT</b> Engineering Suite <em>v1.0.0</em></span>
         <span>© 2026 RE-Project · Alat bantu — wajib diverifikasi insinyur berlisensi.</span>
       </footer>
+
+      {pop && <div className="pop-backdrop" onClick={() => setPop(null)} />}
     </div>
   );
 }
