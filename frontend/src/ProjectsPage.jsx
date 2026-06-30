@@ -3,6 +3,7 @@
 // Izin per-role ditegakkan di Supabase (RLS + trigger enforce_pdoc_columns).
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
+import { SCurve } from './Charts.jsx';
 
 const DEFAULT_DOCS = [
   'Kalkulasi Pondasi Dangkal',
@@ -16,9 +17,10 @@ const STATUS_LABEL = { todo: 'Belum dikirim', submitted: 'Menunggu QC', acc: 'AC
 
 const nowIso = () => new Date().toISOString();
 
-function DocRow({ doc, role, designs, onSubmit, onQc }) {
+function DocRow({ doc, role, designs, profilesMap, onSubmit, onQc }) {
   const isEngineer = role === 'engineer';
   const isQc = role === 'qc';
+  const nameOf = (id) => (id ? (profilesMap?.[id] || '—') : null);
   const [open, setOpen] = useState(false);
   const [catatan, setCatatan] = useState('');
   const [designId, setDesignId] = useState('');
@@ -46,10 +48,12 @@ function DocRow({ doc, role, designs, onSubmit, onQc }) {
         <span className={`doc-badge st-${doc.status}`}>{STATUS_LABEL[doc.status] || doc.status}</span>
       </div>
 
-      {(doc.submit_catatan || doc.qc_catatan) && (
+      {(doc.submitted_by || doc.submit_catatan || doc.qc_by || doc.qc_catatan) && (
         <div className="doc-meta">
+          {doc.submitted_by && <p>✍️ Dikirim oleh <b>{nameOf(doc.submitted_by)}</b>{doc.submitted_at ? ` · ${doc.submitted_at.slice(0, 10)}` : ''}</p>}
           {doc.submit_catatan && <p>📄 {doc.submit_catatan}</p>}
-          {doc.qc_catatan && <p>🔎 QC: {doc.qc_catatan}</p>}
+          {doc.qc_by && <p>✔️ Diperiksa <b>{nameOf(doc.qc_by)}</b>{doc.qc_at ? ` · ${doc.qc_at.slice(0, 10)}` : ''}</p>}
+          {doc.qc_catatan && <p>🔎 Catatan QC: {doc.qc_catatan}</p>}
         </div>
       )}
 
@@ -92,6 +96,7 @@ export default function ProjectsPage({ userId, role }) {
   const [selId, setSelId] = useState(null);
   const [docs, setDocs] = useState([]);
   const [designs, setDesigns] = useState([]);
+  const [profilesMap, setProfilesMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
 
@@ -117,6 +122,8 @@ export default function ProjectsPage({ userId, role }) {
       if (ps.length) setSelId((c) => c ?? ps[0].id);
       const { data } = await supabase.from('foundation_designs').select('id, nama, overall_ok').eq('created_by', userId).order('created_at', { ascending: false });
       setDesigns(data || []);
+      const { data: profs } = await supabase.from('profiles').select('id, nama');
+      setProfilesMap(Object.fromEntries((profs || []).map((p) => [p.id, p.nama])));
       setLoading(false);
     })();
   }, [loadProjects, userId]);
@@ -129,8 +136,19 @@ export default function ProjectsPage({ userId, role }) {
   const submittedCount = docs.filter((d) => d.status === 'submitted').length;
   const pct = total ? Math.round((accCount / total) * 100) : 0;
 
+  // Sintesis data kurva-S dari tanggal ACC tiap dokumen (kumulatif).
+  const projLogs = (() => {
+    const step = 100 / (total || 1);
+    const accs = docs.filter((d) => d.status === 'acc' && d.qc_at).sort((a, b) => new Date(a.qc_at) - new Date(b.qc_at));
+    const out = [];
+    if (sel?.created_at) out.push({ tanggal: sel.created_at.slice(0, 10), persen_progress: 0 });
+    accs.forEach((d, i) => out.push({ tanggal: d.qc_at.slice(0, 10), persen_progress: Math.round((i + 1) * step) }));
+    return out;
+  })();
+
   const [pNama, setPNama] = useState('');
   const [pDesc, setPDesc] = useState('');
+  const [pTarget, setPTarget] = useState('');
   const [docNames, setDocNames] = useState(DEFAULT_DOCS);
   const [creating, setCreating] = useState(false);
 
@@ -140,12 +158,12 @@ export default function ProjectsPage({ userId, role }) {
     if (!pNama.trim()) return;
     setCreating(true);
     const { data: proj, error } = await supabase.from('projects')
-      .insert({ nama: pNama.trim(), deskripsi: pDesc || null, created_by: userId }).select().single();
+      .insert({ nama: pNama.trim(), deskripsi: pDesc || null, target_date: pTarget || null, created_by: userId }).select().single();
     if (error) { setErr(error.message); setCreating(false); return; }
     const rows = docNames.map((nm, i) => ({ project_id: proj.id, nama: (nm || '').trim() || `Dokumen ${i + 1}`, urutan: i }));
     const { error: e2 } = await supabase.from('project_documents').insert(rows);
     if (e2) { setErr(e2.message); setCreating(false); return; }
-    setPNama(''); setPDesc(''); setDocNames(DEFAULT_DOCS); setCreating(false);
+    setPNama(''); setPDesc(''); setPTarget(''); setDocNames(DEFAULT_DOCS); setCreating(false);
     await loadProjects();
     setSelId(proj.id);
   }
@@ -198,6 +216,7 @@ export default function ProjectsPage({ userId, role }) {
                 <form className="form-col" onSubmit={createProject}>
                   <label>Judul project<input value={pNama} onChange={(e) => setPNama(e.target.value)} required /></label>
                   <label>Deskripsi<textarea value={pDesc} onChange={(e) => setPDesc(e.target.value)} rows={2} /></label>
+                  <label>Tanggal target (deadline)<input type="date" value={pTarget} onChange={(e) => setPTarget(e.target.value)} /></label>
                   <p className="muted-note">5 dokumen (boleh diubah namanya):</p>
                   {docNames.map((nm, i) => (
                     <input key={i} value={nm} onChange={(e) => setDocName(i, e.target.value)} placeholder={`Dokumen ${i + 1}`} />
@@ -221,13 +240,20 @@ export default function ProjectsPage({ userId, role }) {
                 <p className="prog-stat">
                   Progress: <b>{pct}%</b> · {accCount}/{total} dokumen ACC
                   {submittedCount > 0 && <> · {submittedCount} menunggu QC</>}
+                  {sel.target_date && <> · target: <b>{sel.target_date}</b></>}
                 </p>
+              </div>
+
+              <div className="panel">
+                <h2>Kurva-S (rencana vs aktual)</h2>
+                <SCurve logs={projLogs} startDate={sel.created_at ? sel.created_at.slice(0, 10) : null} targetDate={sel.target_date} />
+                {!sel.target_date && <p className="muted-note">Tetapkan tanggal target saat membuat project agar garis rencana muncul.</p>}
               </div>
 
               <div className="panel">
                 <h2>Dokumen ({total})</h2>
                 {docs.length === 0 ? <p className="role-hint">Belum ada dokumen.</p>
-                  : docs.map((d) => <DocRow key={d.id} doc={d} role={role} designs={designs} onSubmit={submitDoc} onQc={qcDoc} />)}
+                  : docs.map((d) => <DocRow key={d.id} doc={d} role={role} designs={designs} profilesMap={profilesMap} onSubmit={submitDoc} onQc={qcDoc} />)}
                 {role !== 'engineer' && role !== 'qc' && <p className="muted-note">Mode lihat (viewer): hanya membaca.</p>}
               </div>
             </>

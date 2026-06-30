@@ -187,9 +187,12 @@ create table projects (
   id          uuid primary key default gen_random_uuid(),
   nama        text not null,
   deskripsi   text,
+  target_date date,                              -- deadline project (untuk garis rencana kurva-S)
   created_by  uuid references profiles(id) default auth.uid(),
   created_at  timestamptz not null default now()
 );
+-- Bila tabel projects sudah pernah dibuat tanpa kolom ini, jalankan:
+--   alter table projects add column if not exists target_date date;
 
 create table project_documents (
   id             uuid primary key default gen_random_uuid(),
