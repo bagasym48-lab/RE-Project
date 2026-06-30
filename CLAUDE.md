@@ -74,10 +74,14 @@ Domain specifics worth knowing before editing the math:
 - Still **explicit inputs** (no clean/safe auto-derivation): `xi_g` (≈0.69, the document
   calibration knob), `Cc` (lab-measured), and settlement graph factors `I1`/`I2`/`If`.
   Don't hardcode any of these back to literals.
-- `n_pedestal` (1 or 2) only affects the **uplift** self-weight (`Ap = c1·c2·n_pedestal`) and
-  the **sketch** (`FoundationSketch` draws 2 pedestals spaced by `s_ped` when 2). All other
-  checks model a **single concentrated load** at the footing centre; a true 2-column combined
-  footing (2 load points, reformulated punching/flexure) is intentionally out of scope.
+- `n_pedestal` (1 or 2) affects: **uplift** self-weight (`Ap = c1·c2·n_pedestal`); the **sketch**
+  (`FoundationSketch` draws 2 pedestals spaced by `s_ped`); and the **local checks** under a 50/50
+  shared-load model — `geser_2arah` demand uses tributary `Af/n_pedestal`, while `lentur` &
+  `geser_1arah` cantilevers start from the outer pedestal face (`x_off = s_ped/2`). `n_pedestal=1`
+  ⇒ `x_off=0` and `Af/1`, so the document calibration is **byte-identical/unchanged**. Global checks
+  (`daya_dukung`, `stab_geser`, `guling`, `tulangan_min`) are pedestal-count-independent by design.
+  The combined-footing **hogging moment between columns (top steel) is intentionally NOT modelled** —
+  flagged in the report note. A full 2-load-point combined footing remains out of scope.
 
 ### Units are mixed and load-bearing (common footgun)
 - Foundation dimensions (`B`, `L`, `h`, `Df`, `c1`, `c2`, …): **millimeters**.

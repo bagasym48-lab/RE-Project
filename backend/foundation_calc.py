@@ -117,6 +117,12 @@ def cek(fd: Foundation, soil: Soil, lcs: List[LoadCase], qall: float) -> tuple:
     Af = (fd.B / 1000) * (fd.L / 1000)
     Sx = (fd.B / 1000) * (fd.L / 1000) ** 2 / 6
     Sz = (fd.L / 1000) * (fd.B / 1000) ** 2 / 6
+    # Model 2 pedestal (n_pedestal=2): asumsi beban terbagi rata 50/50 ke tiap
+    # pedestal, dan pedestal bergeser ±s_ped/2 dari pusat footing. Cek lokal
+    # (geser pons, geser 1-arah, lentur) dihitung per pedestal / posisi terluar.
+    # n_pedestal=1 → n_ped=1, x_off=0 → IDENTIK kalibrasi dokumen.
+    n_ped = max(1, int(getattr(fd, "n_pedestal", 1) or 1))
+    x_off = (fd.s_ped / 2.0) if n_ped >= 2 else 0.0   # offset pedestal terluar (mm)
     H: Dict[str, dict] = {}
 
     # --- Daya dukung per LC: cari sigma_max tertinggi ---
@@ -175,7 +181,7 @@ def cek(fd: Foundation, soil: Soil, lcs: List[LoadCase], qall: float) -> tuple:
     et = (d - cna) / cna * 0.003
     phiM = min(0.90, max(0.65, 0.65 + (et - eyt) * 0.25 / (0.005 - eyt)))
     pMn = phiM * As * fd.fy * (d - 0.5 * a) / 1e6
-    Lll = 0.5 * fd.B
+    Lll = max(0.5 * fd.B - x_off, 0.0)   # kantilever dari pedestal terluar ke tepi
     Mu = 0.5 * qu * Bf * Lll ** 2 / 1e6
     H["lentur"] = dict(demand=Mu, kapasitas=pMn, rasio=Mu / pMn if pMn else 0, ok=Mu <= pMn)
     Ag = Bf * fd.h
@@ -193,12 +199,14 @@ def cek(fd: Foundation, soil: Soil, lcs: List[LoadCase], qall: float) -> tuple:
              0.083 * (2 + fd.alphas * d / bo) * LAM * math.sqrt(fd.fc))
     pVn2 = PHI_V * vc * bo * d / 1000
     A_crit = (Lps * Bps) / 1e6
-    Vu2 = qu_f * (Af - A_crit)
+    # Demand pons per pedestal: reaksi tanah pada area tributari (Af/n_ped) di luar
+    # penampang kritis. n_ped=1 → Af - A_crit (identik); n_ped=2 → tiap pedestal ½ beban.
+    Vu2 = qu_f * max(Af / n_ped - A_crit, 0.0)
     H["geser_2arah"] = dict(demand=Vu2, kapasitas=pVn2,
                             rasio=Vu2 / pVn2 if pVn2 else 0, ok=Vu2 <= pVn2)
 
     # --- One-way shear ---
-    Bos = 0.5 * fd.B - (0.5 * fd.c2 + d)
+    Bos = 0.5 * fd.B - (x_off + 0.5 * fd.c2 + d)
     Aos = (fd.L * max(Bos, 0)) / 1e6
     pVn1 = PHI_V * 0.33 * LAM * math.sqrt(fd.fc) * fd.L * d / 1000
     Vu1 = qu_f * Aos

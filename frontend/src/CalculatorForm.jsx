@@ -347,8 +347,10 @@ function ReportSheet({ fd, soil, lcs, result, engineerName, qcName }) {
         <div className="rpt-sketch"><FoundationSketch fd={fd} /></div>
         {Number(fd.n_pedestal) >= 2 && (
           <p className="rpt-note2">
-            Catatan: 2 pedestal (jarak antar pusat {fd.s_ped} mm) dimodelkan menopang satu beban resultan bersama;
-            cek uplift sudah memperhitungkan berat 2 pedestal.
+            Catatan 2 pedestal (jarak antar pusat {fd.s_ped} mm): beban diasumsikan terbagi rata 50/50.
+            Cek geser pons, geser 1-arah, lentur, dan uplift dihitung per pedestal/posisinya; daya dukung,
+            sliding, guling, dan tulangan minimum tetap berbasis beban total. Momen hogging combined footing
+            di antara pedestal (tulangan atas) belum dicakup — wajib dicek terpisah oleh engineer.
           </p>
         )}
       </section>
