@@ -91,7 +91,8 @@ function DocRow({ doc, role, designs, profilesMap, onSubmit, onQc }) {
 }
 
 export default function ProjectsPage({ userId, role }) {
-  const isEngineer = role === 'engineer';
+  const isLeader = role === 'leader';
+  const isEngineer = role === 'engineer' || isLeader; // leader = kemampuan engineer + hapus project
   const [projects, setProjects] = useState([]);
   const [selId, setSelId] = useState(null);
   const [docs, setDocs] = useState([]);
@@ -177,6 +178,15 @@ export default function ProjectsPage({ userId, role }) {
     await loadDocs(selId);
   }
 
+  async function deleteProject(id) {
+    if (!window.confirm('Hapus project ini beserta semua dokumennya? Tindakan ini tidak bisa dibatalkan.')) return;
+    setErr(null);
+    const { error } = await supabase.from('projects').delete().eq('id', id);
+    if (error) { setErr(error.message); return; }
+    if (selId === id) { setSelId(null); setDocs([]); }
+    await loadProjects();
+  }
+
   async function qcDoc(docId, decision, qc_catatan) {
     setErr(null);
     const { error } = await supabase.from('project_documents')
@@ -204,10 +214,13 @@ export default function ProjectsPage({ userId, role }) {
             {loading ? <p className="role-hint">Memuat…</p>
               : projects.length === 0 ? <p className="role-hint">Belum ada project.</p>
                 : projects.map((p) => (
-                  <button key={p.id} className={`wi-item ${p.id === selId ? 'active' : ''}`} onClick={() => setSelId(p.id)}>
-                    <span className="nm">{p.nama}</span>
-                    <span className="meta">{p.deskripsi || '—'}</span>
-                  </button>
+                  <div key={p.id} className="wi-row">
+                    <button className={`wi-item ${p.id === selId ? 'active' : ''}`} onClick={() => setSelId(p.id)}>
+                      <span className="nm">{p.nama}</span>
+                      <span className="meta">{p.deskripsi || '—'}</span>
+                    </button>
+                    {isLeader && <button className="wi-del" title="Hapus project" onClick={() => deleteProject(p.id)}>🗑</button>}
+                  </div>
                 ))}
 
             {isEngineer ? (
@@ -224,7 +237,7 @@ export default function ProjectsPage({ userId, role }) {
                   <button className="btn" type="submit" disabled={creating}>{creating ? 'Menyimpan…' : 'Buat project + 5 dokumen'}</button>
                 </form>
               </>
-            ) : <p className="muted-note">Hanya engineer yang bisa membuat project.</p>}
+            ) : <p className="muted-note">Hanya engineer/leader yang bisa membuat project.</p>}
           </div>
         </div>
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import CalculatorForm from './CalculatorForm.jsx';
 import ProgressPage from './ProgressPage.jsx';
+import MtoPage from './MtoPage.jsx';
 import { LogoMark } from './Logo.jsx';
 
 export default function Shell({ session, profile, onLogout }) {
@@ -16,6 +17,7 @@ export default function Shell({ session, profile, onLogout }) {
         <nav className="tabs">
           <button className={tab === 'calc' ? 'active' : ''} onClick={() => setTab('calc')}>Kalkulator</button>
           <button className={tab === 'progress' ? 'active' : ''} onClick={() => setTab('progress')}>Progress</button>
+          <button className={tab === 'mto' ? 'active' : ''} onClick={() => setTab('mto')}>MTO</button>
         </nav>
         <div className="who">
           <strong>{profile?.nama || session.user.email}</strong>
@@ -26,7 +28,9 @@ export default function Shell({ session, profile, onLogout }) {
 
       {tab === 'calc'
         ? <CalculatorForm userId={session.user.id} profile={profile} userEmail={session.user.email} />
-        : <ProgressPage userId={session.user.id} role={role} />}
+        : tab === 'progress'
+          ? <ProgressPage userId={session.user.id} role={role} />
+          : <MtoPage />}
     </>
   );
 }

@@ -110,7 +110,9 @@ for a header's presence and `/calculate` is effectively public; real Supabase JW
 (against JWKS, via the already-listed `python-jose`) is a TODO.
 
 ### Data model (`supabase/schema.sql`)
-Roles `engineer` / `qc` / `viewer` (`profiles.role`), `work_items`, and `progress_logs`.
+Roles `engineer` / `qc` / `viewer` / `leader` (`profiles.role`), `work_items`, and `progress_logs`.
+**`leader`** = same capabilities as `engineer` plus the right to **delete projects** (RLS: only
+`leader` has `delete` on `projects`; `enforce_pdoc_columns` treats leader like engineer).
 A trigger auto-creates a `profiles` row (defaulting to `viewer`) on signup; **new users' roles
 are set manually** via SQL. RLS is enabled but is **per-row only**; column-level rules are
 enforced by a `BEFORE UPDATE` trigger **`enforce_progress_columns`** on `progress_logs`
@@ -125,6 +127,13 @@ Engineer sets a doc `status` `todo`→`submitted` (+`submit_catatan`/`design_id`
 blocks engineers from ACC-ing and QC from editing submissions. Project progress = `acc`
 docs / total × 100%. The two new tables and the trigger must be run in the Supabase SQL editor
 (they are appended to `schema.sql`).
+
+### MTO (`frontend/src/MtoPage.jsx`)
+A third top-nav tab (after Kalkulator/Progress) for **Material Take-Off** — pure-frontend
+calculators (no backend/DB). Two sub-tabs: **Pondasi Dangkal** (concrete volume + rebar weight
+from dims/reinforcement → cost) and **Pipe Support** (steel-pipe table by type/length/qty →
+weight → cost). Rebar weight `0.006165·d²` kg/m; pipe weights are a Sch-40 `kg/m` catalog.
+Educational estimate — excludes formwork/labour/fittings.
 
 ## Environment
 Backend `.env` (in `backend/`): `CORS_ORIGINS`. Frontend `.env` (in the Vite project root):

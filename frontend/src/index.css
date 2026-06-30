@@ -151,6 +151,7 @@ svg.draw { width: 100%; height: auto; display: block; background: linear-gradien
 .role-engineer { color: #1d4ed8; background: #dbeafe; }
 .role-qc { color: #9a3412; background: #ffedd5; }
 .role-viewer { color: #475569; background: #e2e8f0; }
+.role-leader { color: #6d28d9; background: #ede9fe; }
 
 /* ---------- Top nav (terang, aksen gradien brand) ---------- */
 .topnav { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px; padding: 8px 18px; background: #fff; border-bottom: 1px solid var(--line); box-shadow: var(--shadow-sm); }
@@ -241,6 +242,22 @@ table.logs select, table.logs input { border: 1px solid var(--line-strong); bord
 /* Input nama tanda tangan laporan */
 .sign-input { display: flex; flex-direction: column; gap: 8px; }
 .sign-input h3 { font-size: 13px; color: var(--navy); margin: 0 0 2px; }
+
+/* ---------- Sub-tab MTO (Pondasi | Pipe) ---------- */
+.mto-subtabs { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.mto-subtabs button { padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 9px; }
+.mto-subtabs button.active { background: var(--brand-grad); color: #fff; border-color: transparent; }
+
+/* Tabel hasil MTO */
+.mto-res td { padding: 6px 8px; border-bottom: 1px solid var(--panel-2); font-size: 13px; }
+.mto-res tr.sub td { font-weight: 700; border-top: 1px solid var(--line); }
+.mto-res tr.total td { font-weight: 800; font-size: 14.5px; color: var(--navy); border-top: 2px solid var(--line-strong); }
+
+/* Hapus project (role leader) */
+.wi-row { display: flex; gap: 6px; align-items: stretch; margin-bottom: 6px; }
+.wi-row .wi-item { flex: 1; margin-bottom: 0; }
+.wi-del { flex: 0 0 auto; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 0 11px; cursor: pointer; font-size: 14px; color: #c0392b; }
+.wi-del:hover { background: #fee2e2; border-color: #c0392b; }
 
 /* ---------- Project: bar progress ---------- */
 .prog-bar { height: 12px; border-radius: 7px; background: var(--panel-2); overflow: hidden; margin: 10px 0 6px; }

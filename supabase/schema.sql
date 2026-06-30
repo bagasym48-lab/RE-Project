@@ -5,7 +5,8 @@
 -- ============================================================
 
 -- ---------- 1. Profil pengguna + role ----------
-create type user_role as enum ('engineer', 'qc', 'viewer');
+create type user_role as enum ('engineer', 'qc', 'viewer', 'leader');
+-- leader = sama seperti engineer + boleh MENGHAPUS project.
 
 create table profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
@@ -220,20 +221,24 @@ alter table project_documents enable row level security;
 -- projects: semua login baca; engineer kelola
 create policy "semua login baca projects"
   on projects for select using (auth.uid() is not null);
-create policy "engineer kelola projects"
-  on projects for all
-  using (my_role() = 'engineer') with check (my_role() = 'engineer');
+create policy "buat projects (engineer/leader)"
+  on projects for insert with check (my_role() in ('engineer','leader'));
+create policy "ubah projects (engineer/leader)"
+  on projects for update
+  using (my_role() in ('engineer','leader')) with check (my_role() in ('engineer','leader'));
+create policy "hapus projects (leader)"
+  on projects for delete using (my_role() = 'leader');
 
 -- project_documents
 create policy "semua login baca pdoc"
   on project_documents for select using (auth.uid() is not null);
-create policy "engineer insert pdoc"
-  on project_documents for insert with check (my_role() = 'engineer');
-create policy "engineer update pdoc"
+create policy "insert pdoc (engineer/leader)"
+  on project_documents for insert with check (my_role() in ('engineer','leader'));
+create policy "update pdoc (engineer/leader)"
   on project_documents for update
-  using (my_role() = 'engineer') with check (my_role() = 'engineer');
-create policy "engineer hapus pdoc"
-  on project_documents for delete using (my_role() = 'engineer');
+  using (my_role() in ('engineer','leader')) with check (my_role() in ('engineer','leader'));
+create policy "hapus pdoc (engineer/leader)"
+  on project_documents for delete using (my_role() in ('engineer','leader'));
 create policy "qc update pdoc"
   on project_documents for update
   using (my_role() = 'qc') with check (my_role() = 'qc');
@@ -245,9 +250,9 @@ create or replace function enforce_pdoc_columns()
 returns trigger language plpgsql as $$
 declare r user_role := my_role();
 begin
-  if r = 'engineer' then
+  if r in ('engineer','leader') then
     if new.status in ('acc','revisi') and new.status is distinct from old.status then
-      raise exception 'Engineer tidak boleh meng-ACC/revisi dokumen (hak QC).';
+      raise exception 'Engineer/leader tidak boleh meng-ACC/revisi dokumen (hak QC).';
     end if;
     if new.qc_catatan is distinct from old.qc_catatan
     or new.qc_by      is distinct from old.qc_by
