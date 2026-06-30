@@ -221,7 +221,7 @@ export default function Dashboard({ nama, userId, onOpen }) {
 
       <footer className="dash-foot">
         <span><b>RE-PROJECT</b> Engineering Suite <em>v1.0.0</em></span>
-        <span>© 2026 RE-Project · Alat bantu — wajib diverifikasi insinyur berlisensi.</span>
+        <span>© 2026 RE-Project · Smarter Engineering Starts Here.</span>
       </footer>
 
       {pop && <div className="pop-backdrop" onClick={() => setPop(null)} />}
