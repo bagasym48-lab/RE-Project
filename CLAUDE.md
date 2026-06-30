@@ -118,6 +118,14 @@ enforced by a `BEFORE UPDATE` trigger **`enforce_progress_columns`** on `progres
 `tanggal`/`actual_date`/`work_item_id`/`created_by`). Role comes from `my_role()`; `service_role`
 (null `auth.uid()`) is unrestricted.
 
+A second progress workflow lives in **`projects`** + **`project_documents`** (frontend
+`ProjectsPage.jsx`, a sub-tab of `ProgressPage`): a project owns N documents (5 by default).
+Engineer sets a doc `status` `todo`→`submitted` (+`submit_catatan`/`design_id`); QC sets
+`submitted`→`acc`/`revisi` (+`qc_catatan`). Same trigger pattern — **`enforce_pdoc_columns`**
+blocks engineers from ACC-ing and QC from editing submissions. Project progress = `acc`
+docs / total × 100%. The two new tables and the trigger must be run in the Supabase SQL editor
+(they are appended to `schema.sql`).
+
 ## Environment
 Backend `.env` (in `backend/`): `CORS_ORIGINS`. Frontend `.env` (in the Vite project root):
 `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. See `.env.example`.

@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { SCurve, DailyBars } from './Charts.jsx';
+import ProjectsPage from './ProjectsPage.jsx';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -51,6 +52,21 @@ function LogRow({ log, isQc, onSaveQc }) {
 }
 
 export default function ProgressPage({ userId, role }) {
+  const [view, setView] = useState('projects');
+  return (
+    <>
+      <div className="prog-subtabs">
+        <button className={view === 'projects' ? 'active' : ''} onClick={() => setView('projects')}>Project &amp; Dokumen</button>
+        <button className={view === 'scurve' ? 'active' : ''} onClick={() => setView('scurve')}>Kurva-S (work items)</button>
+      </div>
+      {view === 'projects'
+        ? <ProjectsPage userId={userId} role={role} />
+        : <WorkItemsView userId={userId} role={role} />}
+    </>
+  );
+}
+
+function WorkItemsView({ userId, role }) {
   const [items, setItems] = useState([]);
   const [selId, setSelId] = useState(null);
   const [logs, setLogs] = useState([]);
