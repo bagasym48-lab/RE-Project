@@ -243,6 +243,12 @@ table.logs select, table.logs input { border: 1px solid var(--line-strong); bord
 .sign-input { display: flex; flex-direction: column; gap: 8px; }
 .sign-input h3 { font-size: 13px; color: var(--navy); margin: 0 0 2px; }
 
+/* ---------- Sub-tab Kalkulator (Pondasi | Pipe Support) ---------- */
+.kalk-subtabs { display: flex; gap: 8px; padding: 16px 30px 0; flex-wrap: wrap; }
+.kalk-subtabs button { padding: 8px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--muted); border-radius: 10px; }
+.kalk-subtabs button:hover { border-color: var(--line-strong); color: var(--ink); }
+.kalk-subtabs button.active { background: var(--brand-grad); color: #fff; border-color: transparent; }
+
 /* ---------- Sub-tab MTO (Pondasi | Pipe) ---------- */
 .mto-subtabs { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
 .mto-subtabs button { padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 9px; }

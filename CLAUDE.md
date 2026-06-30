@@ -135,7 +135,11 @@ top-bar (greeting/search), stat cards, Quick Actions, interactive discipline car
 **Recent Project / Recent Calculation read live from Supabase** (`projects` / `foundation_designs`).
 SVG icons come from `Icons.jsx` (`<Ic name=… />`). Only Civil's tools work; other disciplines and
 the Template/Favorites/Recycle-Bin items render a "segera hadir" placeholder. **Only `Civil` is built**: `CivilView.jsx` hosts the three tools
-(`CalculatorForm`, `MtoPage`, `ProgressPage`) under pill sub-tabs. The other disciplines render
+(`KalkulatorView`, `MtoPage`, `ProgressPage`) under pill sub-tabs. `KalkulatorView.jsx` itself
+holds **two** sub-tabs — `CalculatorForm` (pondasi dangkal, backend `/calculate`) and
+`PipeSupportForm` (pipe support, **pure-frontend** simplified single-pile cantilever model from
+the FEED doc — ASCE 7 wind, SNI 1726 seismic Cs, pile Qmax/Qall & Tmax/Tall, Braja-Das pile
+settlement; STAAD/FEA remains the real reference, flagged as educational). The other disciplines render
 a "segera hadir" placeholder. Tool components keep their own `.app`/`.projects` containers; CSS
 neutralises their max-width/padding inside `.civil-body`. Print CSS hides `.ds-side`/`.civil-head`
 so the A4 report still prints clean.

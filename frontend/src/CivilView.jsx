@@ -1,5 +1,5 @@
 // CivilView.jsx — disiplin Civil: tiga tools (Kalkulator, MTO, Progress).
-import CalculatorForm from './CalculatorForm.jsx';
+import KalkulatorView from './KalkulatorView.jsx';
 import MtoPage from './MtoPage.jsx';
 import ProgressPage from './ProgressPage.jsx';
 
@@ -28,7 +28,7 @@ export default function CivilView({ userId, role, profile, userEmail, tool, onTo
       </div>
 
       <div className="civil-body">
-        {t === 'calc' && <CalculatorForm userId={userId} profile={profile} userEmail={userEmail} />}
+        {t === 'calc' && <KalkulatorView userId={userId} profile={profile} userEmail={userEmail} />}
         {t === 'mto' && <MtoPage />}
         {t === 'progress' && <ProgressPage userId={userId} role={role} />}
       </div>
