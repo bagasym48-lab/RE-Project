@@ -358,7 +358,8 @@ table.rpt-table tr { break-inside: avoid; }
 .ds-brand-txt b { color: #fff; font-size: 14px; letter-spacing: .04em; }
 .ds-brand-txt span { color: #7e93a8; font-size: 10.5px; }
 
-.ds-nav { flex: 1; padding: 14px 12px; overflow-y: auto; }
+.ds-nav { flex: 1; padding: 14px 12px; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.ds-nav::-webkit-scrollbar { width: 0; height: 0; display: none; }
 .ds-nav-label { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #647d96; margin: 16px 10px 6px; font-weight: 700; }
 .ds-link {
   display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; margin-bottom: 3px;
