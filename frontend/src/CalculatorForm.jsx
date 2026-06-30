@@ -388,7 +388,7 @@ function ReportSheet({ fd, soil, lcs, result, engineerName, qcName }) {
 
       <footer className="rpt-foot">
         <p className="rpt-disc">
-          ⚠️ Hasil perhitungan ini merupakan alat bantu edukasi dan <b>wajib diverifikasi oleh insinyur sipil berlisensi</b> sebelum digunakan untuk konstruksi.
+          ⚠️ Hasil perhitungan <b>wajib diverifikasi oleh insinyur sipil berlisensi</b> sebelum digunakan untuk konstruksi.
         </p>
         <div className="rpt-sign">
           <div>
