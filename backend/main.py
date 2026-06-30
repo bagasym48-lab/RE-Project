@@ -77,6 +77,7 @@ class FoundationIn(BaseModel):
     c1: float = 400.0
     c2: float = 400.0
     Hp: float = 700.0
+    s_ped: float = 700.0
     cover: float = 75.0
     db: float = 13.0
     srl: float = 150.0

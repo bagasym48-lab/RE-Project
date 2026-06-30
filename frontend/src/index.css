@@ -281,6 +281,7 @@ table.rpt-table tr { break-inside: avoid; }
 .rpt-sketch svg.draw { background: #fff; }
 
 .rpt-terz { font-size: 10.5px; margin: 0 0 6px; }
+.rpt-note2 { font-size: 9.5px; color: #556; margin: 6px 0 0; font-style: italic; }
 .rpt-settle { font-size: 10.5px; margin: 8px 0 4px; }
 .rpt-concl { font-size: 11px; margin: 4px 0 0; }
 .rpt-foot { margin-top: 16px; border-top: 1px solid var(--line-strong); padding-top: 8px; break-inside: avoid; }

@@ -73,6 +73,8 @@ class Foundation:
     c1: float = 400.0        # Lp panjang pedestal (mm)
     c2: float = 400.0        # Bp lebar pedestal (mm)
     Hp: float = 700.0        # tinggi total pedestal (mm)
+    s_ped: float = 700.0     # jarak antar pusat pedestal bila n_pedestal=2 (mm).
+                             # Hanya untuk sketsa; uplift sudah pakai n_pedestal.
     cover: float = 75.0      # selimut (mm)
     db: float = 13.0         # Ø tulangan (mm)
     srl: float = 150.0       # spasi tulangan (mm)

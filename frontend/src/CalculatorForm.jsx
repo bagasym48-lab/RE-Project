@@ -11,7 +11,7 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const defaultFoundation = {
   n_pedestal: 1, alphas: 20, fc: 28, fy: 420,
   B: 1500, L: 1500, h: 300, Df: 500,
-  c1: 400, c2: 400, Hp: 700, cover: 75,
+  c1: 400, c2: 400, Hp: 700, s_ped: 700, cover: 75,
   db: 13, srl: 150, gc: 24, mu_fric: 0.5, SF_bc: 3.0,
 };
 const defaultSoil = {
@@ -32,7 +32,8 @@ const DIMENSI = [
   ['B', 'Bf — lebar footing'], ['L', 'Lf — panjang footing'],
   ['h', 'Hf — tebal footing'], ['Df', 'Df — kedalaman'],
   ['c1', 'Lp — panjang pedestal'], ['c2', 'Bp — lebar pedestal'],
-  ['Hp', 'tinggi pedestal'], ['cover', 'selimut beton'],
+  ['Hp', 'tinggi pedestal'], ['s_ped', 'jarak antar pedestal (jika 2)'],
+  ['cover', 'selimut beton'],
   ['db', 'Ø tulangan'], ['srl', 'spasi tulangan'],
 ];
 const MATERIAL = [
@@ -344,6 +345,12 @@ function ReportSheet({ fd, soil, lcs, result, engineerName, qcName }) {
       <section className="rpt-section">
         <h2>2. Sketsa pondasi</h2>
         <div className="rpt-sketch"><FoundationSketch fd={fd} /></div>
+        {Number(fd.n_pedestal) >= 2 && (
+          <p className="rpt-note2">
+            Catatan: 2 pedestal (jarak antar pusat {fd.s_ped} mm) dimodelkan menopang satu beban resultan bersama;
+            cek uplift sudah memperhitungkan berat 2 pedestal.
+          </p>
+        )}
       </section>
 
       <section className="rpt-section">
