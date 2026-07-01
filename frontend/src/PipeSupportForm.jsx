@@ -8,6 +8,7 @@
 // FEA. Di sini dipakai model kantilever single-pile tersederhana — ALAT BANTU EDUKASI,
 // wajib diverifikasi insinyur sipil berlisensi / analisis STAAD.
 import { useState } from 'react';
+import { LogoMark } from './Logo.jsx';
 
 const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const PI = Math.PI;
@@ -170,6 +171,8 @@ const GROUPS = [
 
 export default function PipeSupportForm() {
   const [s, setS] = useState(def);
+  const [engineerName, setEngineerName] = useState('');
+  const [qcName, setQcName] = useState('');
   const upd = (k, v) => setS((o) => ({ ...o, [k]: v }));
   const r = compute(s);
   const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—');
@@ -223,8 +226,98 @@ export default function PipeSupportForm() {
               <span className={`st ${r.checks.penurunan_pile.ok ? 'ok' : 'ng'}`}> {r.checks.penurunan_pile.ok ? 'OK <25mm' : 'NG ≥25mm'}</span>
             </p>
           </div>
+
+          <div className="card sign-input">
+            <h3>Tanda tangan laporan</h3>
+            <label className="field"><span>Dihitung oleh (engineer)</span><input value={engineerName} onChange={(e) => setEngineerName(e.target.value)} placeholder="Nama engineer" /></label>
+            <label className="field"><span>Diperiksa oleh (QC)</span><input value={qcName} onChange={(e) => setQcName(e.target.value)} placeholder="Nama QC" /></label>
+          </div>
+          <button className="print-btn" onClick={() => window.print()}>🖨️ Cetak / Simpan PDF (A4)</button>
         </aside>
       </div>
+
+      <PipeReportSheet s={s} r={r} engineerName={engineerName} qcName={qcName} />
+    </div>
+  );
+}
+
+// Laporan A4 — disembunyikan di layar (.report-sheet display:none), tampil saat cetak.
+function PipeReportSheet({ s, r, engineerName, qcName }) {
+  const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—');
+  return (
+    <div className="report-sheet">
+      <header className="rpt-head">
+        <div className="rpt-brand">
+          <LogoMark size={48} />
+          <div>
+            <h1>Laporan Kalkulasi Pipe Support</h1>
+            <p>Single-pile cantilever · ASCE 7-16/22 · SNI 1726:2019 · Braja M. Das</p>
+            <p className="rpt-date">Tanggal cetak: {today}</p>
+          </div>
+        </div>
+        <div className={`rpt-verdict ${r.overall_ok ? 'ok' : 'ng'}`}>{r.overall_ok ? 'AMAN' : 'TIDAK AMAN'}</div>
+      </header>
+
+      <section className="rpt-section">
+        <h2>1. Data input</h2>
+        {GROUPS.map(([title, fields]) => (
+          <div key={title}>
+            <h3>{title}</h3>
+            <div className="rpt-kv">
+              {fields.map(([k, l]) => <div key={k} className="rpt-kv-item"><span>{l}</span><b>{s[k]}</b></div>)}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="rpt-section">
+        <h2>2. Hasil analisis</h2>
+        <p className="rpt-terz">
+          Beban angin: q<sub>h</sub> = {f2(r.info.qh)} N/m² · P<sub>use</sub> = {f2(r.info.Puse)} kN/m² · F<sub>angin</sub> = {f2(r.info.Fwind)} kN
+        </p>
+        <p className="rpt-terz">
+          Beban gempa: Cs = {f2(r.info.CsUse)} · F<sub>gempa</sub> = {f2(r.info.Fseis)} kN · Q<sub>max</sub> = {f2(r.info.Pr)} kN · M<sub>kolom</sub> = {f2(r.info.Mr)} kNm
+        </p>
+        <table className="rpt-table rpt-checks">
+          <thead><tr><th>Pengecekan</th><th>Demand</th><th>Kapasitas</th><th>Rasio</th><th>Status</th></tr></thead>
+          <tbody>
+            {Object.entries(r.checks).map(([k, v]) => (
+              <tr key={k}>
+                <td>{LABELS[k]}</td>
+                <td className="num">{k === 'tarik_pile' && v.noTension ? '0 (tanpa tarik)' : f2(v.demand)}</td>
+                <td className="num">{f2(v.kapasitas)}</td>
+                <td className="num">{f2(v.rasio)}</td>
+                <td className={`st ${v.ok ? 'ok' : 'ng'}`}>{v.ok ? 'OK' : 'NG'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="rpt-settle">
+          Penurunan pile (Braja Das): se1 {f2(r.info.se1)} + se2 {f2(r.info.se2)} + se3 {f2(r.info.se3)} =
+          <b> {f2(r.checks.penurunan_pile.demand)} mm</b> —
+          <span className={`st ${r.checks.penurunan_pile.ok ? 'ok' : 'ng'}`}> {r.checks.penurunan_pile.ok ? 'OK (< 25 mm)' : 'NG (≥ 25 mm)'}</span>
+        </p>
+        <p className="rpt-concl">
+          Kesimpulan: <b>{r.overall_ok ? 'Pipe support dinyatakan AMAN' : 'Pipe support TIDAK AMAN'}</b> terhadap rasio struktur, defleksi, displacement, serta kapasitas &amp; penurunan pile (model tersederhana).
+        </p>
+      </section>
+
+      <footer className="rpt-foot">
+        <p className="rpt-disc">
+          ⚠️ Model kantilever single-pile tersederhana — hasil STAAD/FEA tetap acuan dan <b>wajib diverifikasi insinyur sipil berlisensi</b> sebelum konstruksi.
+        </p>
+        <div className="rpt-sign">
+          <div>
+            <span>Dihitung oleh</span><div className="rpt-line" />
+            <div className="rpt-name">{engineerName ? `( ${engineerName} )` : ' '}</div><div className="rpt-role">Engineer</div>
+          </div>
+          <div>
+            <span>Diperiksa oleh</span><div className="rpt-line" />
+            <div className="rpt-name">{qcName ? `( ${qcName} )` : ' '}</div><div className="rpt-role">QC</div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
