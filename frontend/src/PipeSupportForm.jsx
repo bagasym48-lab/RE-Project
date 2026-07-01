@@ -9,6 +9,7 @@
 // wajib diverifikasi insinyur sipil berlisensi / analisis STAAD.
 import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
+import PipeSupportSketch from './PipeSupportSketch.jsx';
 
 const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const PI = Math.PI;
@@ -75,10 +76,11 @@ function compute(s) {
     ? Pr / Pc + (8 / 9) * (Mr / Mc)
     : Pr / (2 * Pc) + Mr / Mc;
 
-  // --- Defleksi vertikal beam (beban pipa terpusat di tengah) ---
-  const Lmm = g('L') * 1000;
-  const dv = (g('P_oper') * 1000) * Lmm ** 3 / (48 * EI); // mm
-  const dvAll = Lmm / 200;                                // L/200 (mm)
+  // --- Defleksi vertikal beam: pipa horizontal kantilever L/2 dari kolom (bentuk T) ---
+  const a = (g('L') / 2) * 1000;                         // lengan kantilever (mm)
+  const wq = g('P_oper') / Math.max(g('L'), 1e-6);       // beban merata (kN/m = N/mm)
+  const dv = wq * a ** 4 / (8 * EI);                     // mm (kantilever UDL, ujung)
+  const dvAll = a / 200;                                 // balok kantilever L/200 (PHR-SP-CI-GG-002)
 
   // --- Displacement horizontal kolom (kantilever, F·H³/3EI) ---
   const Hmm = Htot * 1000;
@@ -147,7 +149,7 @@ function Field({ k, label, value, onChange, step = 'any' }) {
 const GROUPS = [
   ['Geometri', [
     ['H_above', 'tinggi di atas tanah (m)'], ['depth', 'kedalaman pipe di bawah tanah (m)'],
-    ['L', 'panjang beam (m)'], ['Dpipe', 'diameter pipe (in)'],
+    ['L', 'panjang beam = pipa horiz. (m)'], ['Dpipe', 'diameter pipe (in)'],
   ]],
   ['Beban pipa & termal (kN)', [
     ['P_oper', 'beban operation (Fy)'], ['P_test', 'beban hydrotest (Fy)'],
@@ -198,6 +200,10 @@ export default function PipeSupportForm() {
         </section>
 
         <aside className="side">
+          <div className="card">
+            <PipeSupportSketch s={s} />
+          </div>
+
           <div className="card result">
             <div className={`verdict ${r.overall_ok ? 'ok' : 'ng'}`}>{r.overall_ok ? 'AMAN' : 'TIDAK AMAN'}</div>
             <p className="terz">
@@ -272,7 +278,12 @@ function PipeReportSheet({ s, r, engineerName, qcName }) {
       </section>
 
       <section className="rpt-section">
-        <h2>2. Hasil analisis</h2>
+        <h2>2. Sketsa pipe support (bentuk T)</h2>
+        <div className="rpt-sketch"><PipeSupportSketch s={s} /></div>
+      </section>
+
+      <section className="rpt-section">
+        <h2>3. Hasil analisis</h2>
         <p className="rpt-terz">
           Beban angin: q<sub>h</sub> = {f2(r.info.qh)} N/m² · P<sub>use</sub> = {f2(r.info.Puse)} kN/m² · F<sub>angin</sub> = {f2(r.info.Fwind)} kN
         </p>
