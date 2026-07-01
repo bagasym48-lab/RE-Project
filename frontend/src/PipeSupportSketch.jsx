@@ -51,7 +51,7 @@ export default function PipeSupportSketch({ s }) {
   const bx = cx - beamLen / 2;
   const yBeamBot = yTop + beamH;
 
-  const loadXs = [cx - beamLen * 0.28, cx, cx + beamLen * 0.28];
+  const loadXs = [cx];   // beban pipa terpusat di tengah beam (ref dokumen)
 
   return (
     <div className="sketch">

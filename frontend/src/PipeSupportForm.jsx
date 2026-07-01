@@ -76,11 +76,11 @@ function compute(s) {
     ? Pr / Pc + (8 / 9) * (Mr / Mc)
     : Pr / (2 * Pc) + Mr / Mc;
 
-  // --- Defleksi vertikal beam: pipa horizontal kantilever L/2 dari kolom (bentuk T) ---
-  const a = (g('L') / 2) * 1000;                         // lengan kantilever (mm)
-  const wq = g('P_oper') / Math.max(g('L'), 1e-6);       // beban merata (kN/m = N/mm)
-  const dv = wq * a ** 4 / (8 * EI);                     // mm (kantilever UDL, ujung)
-  const dvAll = a / 200;                                 // balok kantilever L/200 (PHR-SP-CI-GG-002)
+  // --- Defleksi vertikal beam: beban pipa sebagai beban TERPUSAT di tengah beam ---
+  // (mengacu dokumen: "input beban di tengah pipa, beban terpusat pada member")
+  const Lmm = g('L') * 1000;
+  const dv = (g('P_oper') * 1000) * Lmm ** 3 / (48 * EI); // mm (P di tengah, balok simple)
+  const dvAll = Lmm / 240;                                // L/240 (serviceability beban terpusat)
 
   // --- Displacement horizontal kolom (kantilever, F·H³/3EI) ---
   const Hmm = Htot * 1000;
