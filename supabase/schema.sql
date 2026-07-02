@@ -279,3 +279,78 @@ drop trigger if exists trg_enforce_pdoc on project_documents;
 create trigger trg_enforce_pdoc
   before update on project_documents
   for each row execute function enforce_pdoc_columns();
+
+-- ============================================================
+-- 6. Riwayat dokumen + komentar/kendala project (langkah 8)
+-- Jalankan blok ini di Supabase SQL Editor (aman diulang / idempotent).
+--   6a. project_document_events — jejak tiap transisi status dokumen
+--       (kirim → ACC/revisi) agar terlihat "sudah direvisi berapa kali".
+--   6b. project_comments — catatan kendala per project untuk kurva-S,
+--       ditulis engineer/leader, dibaca semua (khususnya leader).
+-- ============================================================
+
+-- ---------- 6a. Riwayat/log dokumen ----------
+create table if not exists project_document_events (
+  id           uuid primary key default gen_random_uuid(),
+  document_id  uuid not null references project_documents(id) on delete cascade,
+  project_id   uuid references projects(id) on delete cascade,
+  status       text not null check (status in ('submitted','acc','revisi')),
+  catatan      text,                                   -- submit_catatan / qc_catatan saat itu
+  actor        uuid references profiles(id),           -- yang melakukan aksi
+  created_at   timestamptz not null default now()
+);
+create index if not exists idx_pdoc_events_doc on project_document_events(document_id);
+create index if not exists idx_pdoc_events_project on project_document_events(project_id);
+
+alter table project_document_events enable row level security;
+drop policy if exists "semua login baca pdoc events" on project_document_events;
+create policy "semua login baca pdoc events"
+  on project_document_events for select using (auth.uid() is not null);
+-- Catatan: insert HANYA lewat trigger security-definer di bawah (tak ada policy insert
+-- langsung), supaya riwayat tak bisa dipalsukan dari klien.
+
+-- Trigger: catat event otomatis saat status dokumen berubah.
+create or replace function log_pdoc_event()
+returns trigger language plpgsql security definer as $$
+begin
+  if TG_OP = 'UPDATE'
+     and new.status is distinct from old.status
+     and new.status in ('submitted','acc','revisi') then
+    insert into public.project_document_events(document_id, project_id, status, catatan, actor)
+    values (
+      new.id, new.project_id, new.status,
+      case when new.status = 'submitted' then new.submit_catatan else new.qc_catatan end,
+      case when new.status = 'submitted' then new.submitted_by  else new.qc_by end
+    );
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists trg_log_pdoc_event on project_documents;
+create trigger trg_log_pdoc_event
+  after update on project_documents
+  for each row execute function log_pdoc_event();
+
+-- ---------- 6b. Komentar/kendala per project (untuk kurva-S) ----------
+create table if not exists project_comments (
+  id          uuid primary key default gen_random_uuid(),
+  project_id  uuid not null references projects(id) on delete cascade,
+  catatan     text not null,
+  kategori    text not null default 'umum'
+                check (kategori in ('umum','tunggu_disiplin','data_vendor','kendala_teknis','lainnya')),
+  created_by  uuid references profiles(id) default auth.uid(),
+  created_at  timestamptz not null default now()
+);
+create index if not exists idx_pcomments_project on project_comments(project_id);
+
+alter table project_comments enable row level security;
+drop policy if exists "semua login baca komentar" on project_comments;
+create policy "semua login baca komentar"
+  on project_comments for select using (auth.uid() is not null);
+drop policy if exists "engineer/leader tulis komentar" on project_comments;
+create policy "engineer/leader tulis komentar"
+  on project_comments for insert
+  with check (my_role() in ('engineer','leader') and auth.uid() = created_by);
+drop policy if exists "hapus komentar sendiri" on project_comments;
+create policy "hapus komentar sendiri"
+  on project_comments for delete using (auth.uid() = created_by);

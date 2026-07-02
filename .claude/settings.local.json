@@ -15,7 +15,8 @@
       "PowerShell(npm install --prefix frontend 2>&1)",
       "PowerShell(npm run dev --prefix frontend)",
       "PowerShell(npm install --prefix frontend @supabase/supabase-js 2>&1)",
-      "Bash(curl -s \"https://re-project-app.vercel.app/\")"
+      "Bash(curl -s \"https://re-project-app.vercel.app/\")",
+      "Bash(curl -s \"https://re-project-app.vercel.app/assets/index-BAnN7HTv.js\")"
     ]
   }
 }

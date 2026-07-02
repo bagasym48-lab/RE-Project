@@ -128,6 +128,16 @@ blocks engineers from ACC-ing and QC from editing submissions. Project progress 
 docs / total × 100%. The two new tables and the trigger must be run in the Supabase SQL editor
 (they are appended to `schema.sql`).
 
+Two further tables (schema **§6**) back the Progress UI. **`project_document_events`** is an
+append-only audit log auto-written by an AFTER-UPDATE trigger **`log_pdoc_event`** (security-definer)
+on every doc status change, so each doc shows a *Direvisi N×* badge + a collapsible timeline
+(revision count = number of `revisi` events). **`project_comments`** holds per-project blocker
+notes (with a `kategori`: `tunggu_disiplin`/`data_vendor`/…) written by engineer/leader and read by
+all, shown under the Kurva-S so a leader can see *why* progress is flat — a "progress belum bergerak
+N hari" prompt appears when the S-curve stalls ≥3 days with <100%. Both are RLS read-all; events
+insert **only** via the trigger (tamper-proof), comments insert engineer/leader + delete-own. Like
+the project tables, **§6 must be run in the Supabase SQL editor**.
+
 ### App shell / dashboard (`frontend/src/Shell.jsx`)
 After login, `App` renders **`Shell`** — an EPC dashboard with a dark **discipline sidebar**
 (Dashboard + disiplin + Project/Tools sections, with badges). `Dashboard.jsx` is the landing:
