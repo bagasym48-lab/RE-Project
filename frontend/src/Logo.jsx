@@ -1,6 +1,6 @@
-// Logo.jsx — logo RE-Project dari file gambar (frontend/public/logo apk.png).
-// Nama file mengandung spasi → di-encode jadi %20.
-const LOGO = '/logo%20apk.png';
+// Logo.jsx — logo RE-Project (frontend/public/logo.png = versi latar transparan).
+// File asli berlatar putih (logo apk.png) tetap disimpan sebagai cadangan.
+const LOGO = '/logo.png';
 
 // Dipakai di top-nav. `size` = tinggi gambar (px).
 export function LogoMark({ size = 40 }) {
