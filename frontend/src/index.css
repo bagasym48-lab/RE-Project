@@ -391,7 +391,9 @@ table.rpt-table tr { break-inside: avoid; }
 .dash-head p { color: var(--muted); margin: 6px 0 0; font-size: 14px; }
 .dash-sec { font-size: 17px; color: var(--navy); margin: 28px 0 14px; }
 
-.disc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
+.disc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 1160px) { .disc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px) { .disc-grid { grid-template-columns: 1fr; } }
 .disc-card { background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm); transition: transform .2s ease, box-shadow .2s ease; animation: fadeUp .5s ease both; }
 .disc-card:hover { transform: translateY(-5px); box-shadow: 0 14px 34px rgba(16,42,67,.13); }
 .disc-ico { width: 56px; height: 56px; border-radius: 15px; display: grid; place-items: center; font-size: 28px; margin-bottom: 13px; }
@@ -519,6 +521,15 @@ table.rpt-table tr { break-inside: avoid; }
 .acc-mech .disc-open { background: #2f9e44; color: #fff; border-color: #2f9e44; }
 .acc-process .disc-open { background: #7c3aed; color: #fff; border-color: #7c3aed; }
 .acc-piping .disc-open { background: #ea580c; color: #fff; border-color: #ea580c; }
+/* Electrical (emas) & Instrument (cyan) */
+.acc-elec { border-top-color: #ca8a04; }
+.acc-elec .disc-ico { background: #fdf6e3; color: #ca8a04; }
+.acc-elec .disc-tools { color: #ca8a04; }
+.acc-elec .disc-open { background: #ca8a04; color: #fff; border-color: #ca8a04; }
+.acc-inst { border-top-color: #0891b2; }
+.acc-inst .disc-ico { background: #e0f5fa; color: #0891b2; }
+.acc-inst .disc-tools { color: #0891b2; }
+.acc-inst .disc-open { background: #0891b2; color: #fff; border-color: #0891b2; }
 .disc-open:hover { filter: brightness(1.08); transform: translateY(-1px); }
 
 /* panel bawah: civil tools + recent project + recent calculation */

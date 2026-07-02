@@ -6,17 +6,23 @@ import CivilView from './CivilView.jsx';
 import { LogoMark } from './Logo.jsx';
 import Ic from './Icons.jsx';
 
+// Urutan disiplin (atas→bawah): Process, Mechanical, Piping, Electrical, Instrument, Civil.
+// `acc` = warna aksen ikon di sidebar (varian cerah agar terbaca di latar navy).
 const DISCIPLINES = [
-  { id: 'civil', label: 'Civil', icon: 'civil', count: 3, soon: false },
-  { id: 'mechanical', label: 'Mechanical', icon: 'mechanical', count: 4, soon: true },
-  { id: 'process', label: 'Process', icon: 'process', count: 3, soon: true },
-  { id: 'piping', label: 'Piping', icon: 'piping', count: 4, soon: true },
+  { id: 'process', label: 'Process', icon: 'process', count: 3, soon: true, acc: '#a78bfa' },
+  { id: 'mechanical', label: 'Mechanical', icon: 'mechanical', count: 4, soon: true, acc: '#4ade80' },
+  { id: 'piping', label: 'Piping', icon: 'piping', count: 4, soon: true, acc: '#fb923c' },
+  { id: 'electrical', label: 'Electrical', icon: 'electrical', count: 4, soon: true, acc: '#fbbf24' },
+  { id: 'instrument', label: 'Instrument', icon: 'instrument', count: 3, soon: true, acc: '#22d3ee' },
+  { id: 'civil', label: 'Civil', icon: 'civil', count: 3, soon: false, acc: '#38bdf8' },
 ];
 
 const DISC_INFO = {
-  mechanical: { label: 'Mechanical Engineering', icon: 'mechanical', desc: 'Tools & utilitas teknik mesin' },
   process: { label: 'Process Engineering', icon: 'process', desc: 'Kalkulasi teknik proses' },
+  mechanical: { label: 'Mechanical Engineering', icon: 'mechanical', desc: 'Tools & utilitas teknik mesin' },
   piping: { label: 'Piping Engineering', icon: 'piping', desc: 'Tools & kalkulasi perpipaan' },
+  electrical: { label: 'Electrical Engineering', icon: 'electrical', desc: 'Tools & kalkulasi teknik elektro / kelistrikan' },
+  instrument: { label: 'Instrument Engineering', icon: 'instrument', desc: 'Tools & kalkulasi instrumentasi & kontrol' },
 };
 
 function Placeholder({ icon, label, desc, onBack }) {
@@ -46,9 +52,9 @@ export default function Shell({ session, profile, onLogout }) {
   };
   const goSoon = (label) => { setSoon(label); setView('soon'); };
 
-  const NavLink = ({ id, icon, label, count, soonTag, onClick }) => (
+  const NavLink = ({ id, icon, label, count, soonTag, acc, onClick }) => (
     <button className={`ds-link ${view === id ? 'active' : ''}`} onClick={onClick}>
-      <span className="ico"><Ic name={icon} size={17} /></span>
+      <span className="ico" style={acc && view !== id ? { color: acc } : undefined}><Ic name={icon} size={17} /></span>
       <span className="lbl">{label}</span>
       {count != null && <span className="ds-badge">{count}</span>}
       {soonTag && <span className="ds-soon">Soon</span>}
@@ -68,7 +74,7 @@ export default function Shell({ session, profile, onLogout }) {
 
           <div className="ds-nav-label">Disiplin</div>
           {DISCIPLINES.map((d) => (
-            <NavLink key={d.id} id={d.id} icon={d.icon} label={d.label} count={d.count} soonTag={d.soon} onClick={() => setView(d.id)} />
+            <NavLink key={d.id} id={d.id} icon={d.icon} label={d.label} count={d.count} soonTag={d.soon} acc={d.acc} onClick={() => setView(d.id)} />
           ))}
 
           <div className="ds-nav-label">Project</div>
@@ -100,7 +106,7 @@ export default function Shell({ session, profile, onLogout }) {
             tool={civilTool} onTool={(t) => open('civil', t)}
           />
         )}
-        {(view === 'mechanical' || view === 'process' || view === 'piping') && (
+        {DISC_INFO[view] && (
           <Placeholder {...DISC_INFO[view]} onBack={() => setView('dashboard')} />
         )}
         {view === 'soon' && (
