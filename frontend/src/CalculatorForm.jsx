@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import FoundationSketch from './FoundationSketch.jsx';
 import DesignPanel from './DesignPanel.jsx';
 import { LogoMark } from './Logo.jsx';
-import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, defProject } from './reportKit.jsx';
+import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, defProject, ItemsTable, Iso3DFooting } from './reportKit.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -322,14 +322,6 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
   const sMax = ck.daya_dukung.demand;
   const sMin = nz(govBC.FY) / Af - Math.abs(nz(govBC.MX)) / Sx - Math.abs(nz(govBC.MZ)) / Sz;
   const govSh = lcs.find((l) => String(l.nama) === String(ck.stab_geser.lc)) || {};
-  const govOv = lcs.find((l) => String(l.nama) === String(ck.guling.lc)) || {};
-  const kv = (rows, src) => (
-    <div className="rpt-kv">
-      {rows.map(([k, l]) => (
-        <div key={k} className="rpt-kv-item"><span>{l}</span><b>{src[k]}</b></div>
-      ))}
-    </div>
-  );
   return (
     <div className="report-sheet">
       <FDDefs />
@@ -349,14 +341,72 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
       </header>
 
       <section className="rpt-section">
-        <h2>1. Data input</h2>
-        <h3>1.1 Dimensi pondasi (mm)</h3>
-        {kv(DIMENSI, fd)}
-        <h3>1.2 Material &amp; faktor</h3>
-        {kv(MATERIAL, fd)}
-        <h3>1.3 Parameter tanah</h3>
-        {kv(SOIL, soil)}
-        <h3>1.4 Load case — reaksi tumpuan ASD (kN, kNm)</h3>
+        <h2>1. Umum</h2>
+        <h3>1.1 Kode &amp; Standar</h3>
+        <ItemsTable head={['Item', 'Deskripsi']} rows={[
+          ['Metode desain', 'ASD (stabilitas & daya dukung) + LRFD (penulangan)'],
+          ['Daya dukung tanah', 'Terzaghi (1943) · faktor bentuk Krizek (1965)'],
+          ['Beton bertulang', 'SNI 2847:2019 (ACI 318-14)'],
+          ['Stabilitas', 'SNI 8460:2017 (geoteknik)'],
+          ['Penurunan', 'Steinbrenner (1934) · Braja M. Das'],
+        ]} />
+        <h3>1.2 Material &amp; Berat Satuan</h3>
+        <ItemsTable rows={[
+          [<>Kuat tekan beton f&#39;<sub>c</sub></>, `${f(fd.fc)} MPa`],
+          [<>Tegangan leleh tulangan f<sub>y</sub></>, `${f(fd.fy)} MPa`],
+          [<>Berat jenis beton γ<sub>c</sub></>, `${f(fd.gc)} kN/m³`],
+          [<>Berat jenis tanah γ<sub>s</sub></>, `${f(soil.gs)} kN/m³`],
+          [<>Berat jenis air γ<sub>w</sub></>, `${f(soil.gw)} kN/m³`],
+          [<>Modulus tanah E<sub>s</sub></>, `${f(soil.Es, 0)} kPa`],
+        ]} />
+        <h3>1.3 Kondisi Tanah &amp; Faktor Keamanan</h3>
+        <ItemsTable rows={[
+          [<>Sudut geser dalam ϕ</>, `${f(soil.phi)}°`],
+          [<>Kohesi c</>, `${f(soil.c)} kPa`],
+          [<>Daya dukung izin q<sub>all</sub></>, `${f(tz.qall)} kPa`],
+          ['SF daya dukung', `${f(fd.SF_bc, 1)}`],
+          ['SF geser / guling / uplift', '1.5 / 2.0 / 1.5'],
+          [<>Koef. gesek dasar μ</>, `${f(fd.mu_fric)}`],
+          [<>Faktor bentuk ξ<sub>c</sub> / ξ<sub>q</sub> / ξ<sub>γ</sub></>, `${f(tz.xi_c)} / ${f(tz.xi_q)} / ${f(tz.xi_g)}`],
+        ]} />
+        <h3>1.4 Kombinasi Beban</h3>
+        <p className="rpt-note2">Beban = reaksi tumpuan ASD dari STAAD ({lcs.length} load case). Daya dukung dievaluasi per load case; yang menentukan adalah σmax tertinggi. Rincian load case pada §3.3.</p>
+      </section>
+
+      <section className="rpt-section">
+        <h2>2. Gambar</h2>
+        <h3>2.1 Sketsa Detail Fondasi (2D &amp; 3D)</h3>
+        <div className="rpt-sketch"><FoundationSketch fd={fd} /></div>
+        <div className="fd-row"><Iso3DFooting B={fd.B} L={fd.L} H={fd.h} pedestal /></div>
+        {Number(fd.n_pedestal) >= 2 && (
+          <p className="rpt-note2">
+            Catatan 2 pedestal (jarak antar pusat {fd.s_ped} mm): beban diasumsikan terbagi rata 50/50.
+            Cek geser pons, geser 1-arah, lentur, dan uplift dihitung per pedestal/posisinya; daya dukung,
+            sliding, guling, dan tulangan minimum tetap berbasis beban total. Momen hogging combined footing
+            di antara pedestal (tulangan atas) belum dicakup — wajib dicek terpisah oleh engineer.
+          </p>
+        )}
+      </section>
+
+      <section className="rpt-section">
+        <h2>3. Data Fondasi</h2>
+        <h3>3.1 Data Footing &amp; Penampang</h3>
+        <ItemsTable rows={[
+          [<>Lebar B<sub>f</sub> / Panjang L<sub>f</sub></>, `${fd.B} / ${fd.L} mm`],
+          [<>Tebal H<sub>f</sub> / Kedalaman D<sub>f</sub></>, `${fd.h} / ${fd.Df} mm`],
+          [<>Luas dasar A<sub>f</sub></>, `${f(Af, 3)} m²`],
+          [<>Modulus penampang S<sub>x</sub> / S<sub>z</sub></>, `${f(Sx, 3)} / ${f(Sz, 3)} m³`],
+          ['Selimut beton', `${fd.cover} mm`],
+        ]} />
+        <h3>3.2 Data Pedestal (Pier)</h3>
+        <ItemsTable rows={[
+          [<>Panjang L<sub>p</sub> (c1) / Lebar B<sub>p</sub> (c2)</>, `${fd.c1} / ${fd.c2} mm`],
+          [<>Tinggi pedestal H<sub>p</sub></>, `${fd.Hp} mm`],
+          ['Jumlah pedestal', `${fd.n_pedestal}`],
+          ['Jarak antar pedestal (bila 2)', `${fd.s_ped} mm`],
+          [<>Ø tulangan / spasi</>, `${fd.db} / ${fd.srl} mm`],
+        ]} />
+        <h3>3.3 Load Case — reaksi tumpuan ASD (kN, kNm)</h3>
         <table className="rpt-table">
           <thead>
             <tr><th>Nama</th><th>FY</th><th>FX</th><th>FZ</th><th>MX</th><th>MZ</th></tr>
@@ -374,22 +424,9 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
       </section>
 
       <section className="rpt-section">
-        <h2>2. Sketsa pondasi</h2>
-        <div className="rpt-sketch"><FoundationSketch fd={fd} /></div>
-        {Number(fd.n_pedestal) >= 2 && (
-          <p className="rpt-note2">
-            Catatan 2 pedestal (jarak antar pusat {fd.s_ped} mm): beban diasumsikan terbagi rata 50/50.
-            Cek geser pons, geser 1-arah, lentur, dan uplift dihitung per pedestal/posisinya; daya dukung,
-            sliding, guling, dan tulangan minimum tetap berbasis beban total. Momen hogging combined footing
-            di antara pedestal (tulangan atas) belum dicakup — wajib dicek terpisah oleh engineer.
-          </p>
-        )}
-      </section>
+        <h2>4. Cek Stabilitas</h2>
 
-      <section className="rpt-section">
-        <h2>3. Rincian perhitungan</h2>
-
-        <DerivGroup title="A. Daya dukung Terzaghi" refs="Terzaghi (1943) · faktor Krizek (1965)">
+        <DerivGroup title="4.1 Daya dukung Terzaghi" refs="Terzaghi (1943) · faktor Krizek (1965)">
           <Step desc="Faktor kapasitas dukung (fungsi ϕ)" refs="Krizek (1965)"
             expr={<>N<sub>c</sub> / N<sub>q</sub> / N<sub>γ</sub></>}
             sub={<>{f(tz.Nc)} / {f(tz.Nq)} / {f(tz.Ng)}</>} />
@@ -405,7 +442,7 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
             sub={<>{f(tz.qu)} / {f(fd.SF_bc, 1)}</>} val={f(tz.qall)} unit="kPa" />
         </DerivGroup>
 
-        <DerivGroup title="B. Daya dukung tanah — tegangan kontak" refs={`governing ${ck.daya_dukung.lc}`}>
+        <DerivGroup title="4.2 Daya dukung tanah — tegangan kontak" refs={`governing ${ck.daya_dukung.lc}`}>
           <Step desc="Luas & modulus penampang dasar footing"
             expr={<>A<sub>f</sub> = B·L ; S<sub>x</sub> = B·L²/6 ; S<sub>z</sub> = L·B²/6</>}
             sub={<>A<sub>f</sub>={f(Af, 3)} m² ; S<sub>x</sub>={f(Sx, 3)} ; S<sub>z</sub>={f(Sz, 3)} m³</>} />
@@ -415,7 +452,7 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
             val={f(sMax)} unit="kPa" ok={ck.daya_dukung.ok} />
         </DerivGroup>
 
-        <DerivGroup title="C. Stabilitas" refs="ASD — SNI 8460:2017">
+        <DerivGroup title="4.3 Stabilitas geser, guling & uplift" refs="ASD — SNI 8460:2017">
           <Step desc="Geser: gaya penahan gesek (SF ≥ 1.5)" note={`governing ${ck.stab_geser.lc}`}
             expr={<>F<sub>r</sub> = F<sub>y</sub>·μ ; SF = F<sub>r</sub>/H<sub>lat</sub></>}
             sub={<>F<sub>r</sub> = {f(nz(govSh.FY))}·{f(fd.mu_fric)} = {f(ck.stab_geser.kapasitas)} kN ; H={f(ck.stab_geser.demand)}</>}
@@ -429,7 +466,16 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
             sub={<>{f(inf.Frbp)} / {f(inf.Fdb)}</>} val={f(inf.SFup)} ok={ck.uplift.ok} />
         </DerivGroup>
 
-        <DerivGroup title="D. Struktur beton" refs="SNI 2847:2019">
+        <div className="fd-row">
+          <SoilPressureDiagram sMax={sMax} sMin={sMin} />
+        </div>
+        <p className="rpt-note2">Distribusi tekanan tanah trapesium (σmax–σmin, governing {ck.daya_dukung.lc}) untuk cek daya dukung tanah.</p>
+      </section>
+
+      <section className="rpt-section">
+        <h2>5. Desain Fondasi &amp; Penurunan</h2>
+
+        <DerivGroup title="5.1 Struktur beton (lentur, geser, tulangan)" refs="SNI 2847:2019">
           <Step desc="Tinggi efektif & beban garis ultimit"
             expr={<>d = H<sub>f</sub>−c−0.5·d<sub>b</sub> ; q<sub>u,f</sub> = 1.4·q<sub>all</sub></>}
             sub={<>d = {f(inf.d)} mm ; q<sub>u,f</sub> = {f(inf.qu_f)} kN/m</>} />
@@ -450,7 +496,7 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
             ok={ck.geser_1arah.ok} />
         </DerivGroup>
 
-        <DerivGroup title="E. Penurunan (settlement)" refs="Steinbrenner (1934) · Braja M. Das">
+        <DerivGroup title="5.2 Penurunan (settlement)" refs="Steinbrenner (1934) · Braja M. Das">
           <Step desc="Penurunan segera (elastis)" expr={<>S<sub>i</sub> = q<sub>0</sub>·B·<Frac n="(1−μ²)" d={<>E<sub>s</sub></>} />·I<sub>s</sub>·I<sub>f</sub>·4</>}
             sub={<>q<sub>0</sub> = {f(inf.q0)} kPa</>} val={f(se.Si)} unit="mm" />
           <Step desc="Konsolidasi primer + sekunder" refs={`Cs = ${f(se.Cs, 4)} (auto Cc/10)`}
@@ -459,23 +505,18 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
           <Step desc="Penurunan total (batas 25 mm)" expr={<>S = S<sub>i</sub>+S<sub>c1</sub>+S<sub>c2</sub></>}
             sub={<>{f(se.Si)}+{f(se.Sc1)}+{f(se.Sc2)}</>} val={f(se.Stot)} unit="mm" ok={se.ok} />
         </DerivGroup>
-      </section>
 
-      <section className="rpt-section">
-        <h2>4. Diagram gaya dalam</h2>
         <div className="fd-row">
-          <SoilPressureDiagram sMax={sMax} sMin={sMin} />
           <CantileverForceDiagram a={aCant} w={inf.qu_f} Vmax={inf.qu_f * aCant} Mmax={ck.lentur.demand} />
         </div>
         <p className="rpt-note2">
-          Tekanan tanah trapesium (σmax–σmin, governing {ck.daya_dukung.lc}) untuk cek daya dukung; footing
-          ditinjau sebagai kantilever dari muka pedestal (L<sub>kant</sub> = {f(aCant, 3)} m) dengan beban garis
-          ultimit q<sub>u,f</sub> = 1.4·q<sub>all</sub> = {f(inf.qu_f)} kN/m.
+          Footing ditinjau sebagai kantilever dari muka pedestal (L<sub>kant</sub> = {f(aCant, 3)} m) dengan
+          beban garis ultimit q<sub>u,f</sub> = 1.4·q<sub>all</sub> = {f(inf.qu_f)} kN/m.
         </p>
       </section>
 
       <section className="rpt-section">
-        <h2>5. Hasil analisis</h2>
+        <h2>6. Rekapitulasi &amp; Kesimpulan</h2>
         <p className="rpt-terz">
           Daya dukung Terzaghi: q<sub>all</sub> = <b>{result.terzaghi.qall.toFixed(2)} kPa</b> ·
           q<sub>u</sub> = {result.terzaghi.qu.toFixed(2)} kPa ·

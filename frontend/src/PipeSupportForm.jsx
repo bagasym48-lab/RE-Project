@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
 import PipeSupportSketch from './PipeSupportSketch.jsx';
-import { Step, DerivGroup, Frac, FDDefs, ColumnForceDiagram, BeamForceDiagram, f, ProjectInfoForm, ReportCover, defProject } from './reportKit.jsx';
+import { Step, DerivGroup, Frac, FDDefs, ColumnForceDiagram, BeamForceDiagram, f, ProjectInfoForm, ReportCover, defProject, ItemsTable, Iso3DPipe } from './reportKit.jsx';
 
 const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const PI = Math.PI;
@@ -282,26 +282,60 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
       </header>
 
       <section className="rpt-section">
-        <h2>1. Data input</h2>
-        {GROUPS.map(([title, fields]) => (
-          <div key={title}>
-            <h3>{title}</h3>
-            <div className="rpt-kv">
-              {fields.map(([k, l]) => <div key={k} className="rpt-kv-item"><span>{l}</span><b>{s[k]}</b></div>)}
-            </div>
-          </div>
-        ))}
+        <h2>1. Umum</h2>
+        <h3>1.1 Kode &amp; Standar</h3>
+        <ItemsTable head={['Item', 'Deskripsi']} rows={[
+          ['Model', 'Kantilever single-pile tersederhana (STAAD/FEA tetap acuan)'],
+          ['Beban angin', 'ASCE 7-16/22 · SNI 1727:2020'],
+          ['Beban gempa', 'SNI 1726:2019'],
+          ['Struktur baja', 'AISC 360-16 (interaksi P-M, Bab H1)'],
+          ['Penurunan pile', 'Braja M. Das (1988) — elastis'],
+        ]} />
+        <h3>1.2 Material &amp; Penampang</h3>
+        <ItemsTable rows={[
+          [<>Tegangan leleh baja f<sub>y</sub></>, `${f(s.fy)} MPa`],
+          [<>Modulus elastisitas baja E</>, `${f(s.E, 0)} MPa`],
+          [<>Ø luar / tebal pipa D<sub>o</sub> / t</>, `${f(s.Do)} / ${f(s.t)} mm`],
+          [<>Modulus pile E<sub>p</sub></>, `${f(s.Ep, 0)} kN/m²`],
+        ]} />
+        <h3>1.3 Kondisi Tanah &amp; Kapasitas Pile</h3>
+        <ItemsTable rows={[
+          ['N-SPT', `${f(s.N, 0)}`],
+          [<>Poisson tanah μ</>, `${f(s.mu)}`],
+          [<>Kapasitas izin pile — tekan Q<sub>all</sub></>, `${f(s.Qall)} kN`],
+          [<>Kapasitas izin pile — tarik T<sub>all</sub></>, `${f(s.Tall)} kN`],
+          ['Batas penurunan pile', '25 mm'],
+        ]} />
+        <h3>1.4 Kombinasi Beban</h3>
+        <ItemsTable head={['Notasi', 'Deskripsi beban']} rows={[
+          ['P(o) / P(t)', `Beban pipa operasi / test = ${f(s.P_oper)} / ${f(s.P_test)} kN`],
+          ['T(x), T(z)', `Beban termal arah X / Z = ${f(s.Tx)} / ${f(s.Tz)} kN`],
+          ['W', `Beban angin (V = ${f(s.V)} m/s, min ${f(s.Pmin)} kN/m²)`],
+          ['E', `Beban gempa (SDS = ${f(s.SDS)} g, Cs·P + 0.14·SDS vertikal)`],
+        ]} />
       </section>
 
       <section className="rpt-section">
-        <h2>2. Sketsa pipe support (bentuk T)</h2>
+        <h2>2. Gambar</h2>
+        <h3>2.1 Sketsa Detail Pipe Support (2D &amp; 3D)</h3>
         <div className="rpt-sketch"><PipeSupportSketch s={s} /></div>
+        <div className="fd-row"><Iso3DPipe Do={s.Do} L={s.L} Htot={f(r.info.Htot)} /></div>
       </section>
 
       <section className="rpt-section">
-        <h2>3. Rincian perhitungan</h2>
+        <h2>3. Data Struktur &amp; Beban</h2>
+        <h3>3.1 Data Penampang &amp; Member</h3>
+        <ItemsTable rows={[
+          [<>Ø luar / tebal D<sub>o</sub> / t</>, `${f(s.Do)} / ${f(s.t)} mm`],
+          [<>Luas penampang A</>, `${f(r.info.A, 0)} mm²`],
+          [<>Momen inersia I</>, `${f(r.info.I, 0)} mm⁴`],
+          [<>Modulus penampang Z</>, `${f(r.info.Z, 0)} mm³`],
+          [<>Panjang kolom (H atas + kedalaman) H<sub>tot</sub></>, `${f(r.info.Htot)} m`],
+          [<>Panjang beam L</>, `${f(s.L)} m`],
+          [<>Pile — Ø / panjang</>, `${f(s.Dpile)} m / ${f(s.Lpile)} m`],
+        ]} />
 
-        <DerivGroup title="A. Beban angin" refs="SNI 1727:2020 · ASCE 7-16">
+        <DerivGroup title="3.2 Beban angin" refs="SNI 1727:2020 · ASCE 7-16">
           <Step desc="Tekanan kecepatan angin" refs="SNI 1727:2020 Pers. 26.10-1"
             expr={<>q<sub>h</sub> = 0.613·K<sub>z</sub>·K<sub>zt</sub>·K<sub>d</sub>·K<sub>e</sub>·V²</>}
             sub={<>0.613·{f(s.Kz)}·{f(s.Kzt)}·{f(s.Kd)}·{f(s.Ke)}·{f(s.V)}²</>} val={f(r.info.qh)} unit="N/m²" />
@@ -316,7 +350,7 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
             sub={<>{f(r.info.Puse)}·{f(r.info.Dm, 3)}·{f(s.L)}</>} val={f(r.info.Fwind)} unit="kN" />
         </DerivGroup>
 
-        <DerivGroup title="B. Beban gempa" refs="SNI 1726:2019">
+        <DerivGroup title="3.3 Beban gempa" refs="SNI 1726:2019">
           <Step desc="Koefisien respons seismik" refs="SNI 1726:2019 Ps. 7.8.1.1"
             expr={<>C<sub>s</sub> = S<sub>DS</sub>·I<sub>e</sub> / R</>}
             sub={<>{f(s.SDS, 3)}·{f(s.Ie)} / {f(s.R)}</>} val={f(r.info.Cs, 3)} />
@@ -328,7 +362,7 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
             sub={<>{f(r.info.CsUse, 3)}·{f(s.P_oper)}</>} val={f(r.info.Fseis)} unit="kN" />
         </DerivGroup>
 
-        <DerivGroup title="C. Properti penampang pipa baja">
+        <DerivGroup title="3.4 Properti penampang pipa baja">
           <Step desc="Luas penampang" expr={<>A = <Frac n="π" d="4" />·(D<sub>o</sub>²−D<sub>i</sub>²)</>}
             sub={<>D<sub>i</sub> = {f(r.info.Di)} mm</>} val={f(r.info.A, 0)} unit="mm²" />
           <Step desc="Momen inersia" expr={<>I = <Frac n="π" d="64" />·(D<sub>o</sub>⁴−D<sub>i</sub>⁴)</>} val={f(r.info.I, 0)} unit="mm⁴" />
@@ -346,7 +380,16 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
             expr={<>M = H·H<sub>tot</sub></>} sub={<>{f(r.info.Hlat)}·{f(r.info.Htot)}</>} val={f(r.info.Mr)} unit="kNm" />
         </DerivGroup>
 
-        <DerivGroup title="E. Rasio interaksi struktur" refs="AISC 360-16 Bab H1">
+        <div className="fd-row">
+          <ColumnForceDiagram Htot={r.info.Htot} H={r.info.Hlat} Mbase={r.info.Mr} N={r.info.Pr} />
+        </div>
+        <p className="rpt-note2">Kolom diidealkan sebagai kantilever (jepit di titik fixity) di bawah gaya lateral H; diagram STAAD/FEA tetap acuan.</p>
+      </section>
+
+      <section className="rpt-section">
+        <h2>4. Cek Kapasitas &amp; Kelayanan Struktur</h2>
+
+        <DerivGroup title="4.1 Rasio interaksi struktur" refs="AISC 360-16 Bab H1">
           <Step desc="Kapasitas aksial leleh" expr={<>P<sub>c</sub> = 0.9·f<sub>y</sub>·A</>}
             sub={<>0.9·{f(s.fy)}·{f(r.info.A, 0)} / 1000</>} val={f(r.info.Pc)} unit="kN" />
           <Step desc="Kapasitas momen" expr={<>M<sub>c</sub> = 0.9·f<sub>y</sub>·Z</>} val={f(r.info.Mc)} unit="kNm" />
@@ -357,7 +400,7 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
             val={f(r.info.ratioPM, 3)} ok={r.checks.struktur.ok} />
         </DerivGroup>
 
-        <DerivGroup title="F. Defleksi & displacement (kelayanan)">
+        <DerivGroup title="4.2 Defleksi & displacement (kelayanan)">
           <Step desc="Defleksi vertikal beam (P di tengah, balok sederhana)" refs="izin L/240"
             expr={<>δ<sub>v</sub> = <Frac n="P·L³" d="48·E·I" /></>} val={f(r.info.dv)} unit="mm"
             ok={r.checks.defleksi_vertikal.ok} note={`izin L/240 = ${f(r.info.dvAll)} mm`} />
@@ -369,7 +412,16 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
             ok={r.checks.displ_gempa.ok} note={`izin 0.015·H = ${f(r.info.dhSeisAll)} mm`} />
         </DerivGroup>
 
-        <DerivGroup title="G. Penurunan pile (elastis)" refs="Braja M. Das (1988)">
+        <div className="fd-row">
+          <BeamForceDiagram L={n(s.L)} P={n(s.P_oper)} Mmax={Mbeam} />
+        </div>
+        <p className="rpt-note2">Beam = balok sederhana dengan beban pipa terpusat di tengah (defleksi δ<sub>v</sub> = P·L³/48EI).</p>
+      </section>
+
+      <section className="rpt-section">
+        <h2>5. Penurunan Pile</h2>
+
+        <DerivGroup title="5.1 Penurunan pile (elastis)" refs="Braja M. Das (1988)">
           <Step desc="Penurunan batang pile" expr={<>s<sub>e1</sub> = (Q<sub>wp</sub>+ξ·Q<sub>ws</sub>)·L<sub>p</sub> / (A<sub>p</sub>·E<sub>p</sub>)</>} val={f(r.info.se1)} unit="mm" />
           <Step desc="Penurunan ujung pile" expr={<>s<sub>e2</sub> = (Q<sub>wp</sub>/A<sub>p</sub>)·(D/E<sub>s</sub>)·(1−μ²)·I<sub>wp</sub></>} val={f(r.info.se2)} unit="mm" />
           <Step desc="Penurunan selimut pile" expr={<>s<sub>e3</sub> = (Q<sub>ws</sub>/(p·L<sub>p</sub>))·(D/E<sub>s</sub>)·(1−μ²)·I<sub>ws</sub></>} val={f(r.info.se3)} unit="mm" />
@@ -379,19 +431,7 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
       </section>
 
       <section className="rpt-section">
-        <h2>4. Diagram gaya dalam</h2>
-        <div className="fd-row">
-          <ColumnForceDiagram Htot={r.info.Htot} H={r.info.Hlat} Mbase={r.info.Mr} N={r.info.Pr} />
-          <BeamForceDiagram L={n(s.L)} P={n(s.P_oper)} Mmax={Mbeam} />
-        </div>
-        <p className="rpt-note2">
-          Model tersederhana: kolom diidealkan sebagai kantilever (jepit di titik fixity) di bawah gaya lateral H,
-          beam sebagai balok sederhana dengan beban pipa terpusat di tengah. Diagram STAAD/FEA tetap menjadi acuan.
-        </p>
-      </section>
-
-      <section className="rpt-section">
-        <h2>5. Hasil analisis</h2>
+        <h2>6. Rekapitulasi Pengecekan</h2>
         <p className="rpt-terz">
           Beban angin: q<sub>h</sub> = {f2(r.info.qh)} N/m² · P<sub>use</sub> = {f2(r.info.Puse)} kN/m² · F<sub>angin</sub> = {f2(r.info.Fwind)} kN
         </p>

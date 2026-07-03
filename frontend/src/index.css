@@ -467,6 +467,25 @@ figure.fd svg.draw { background: #fff; }
 .fd-dim, .fd-unit { font-size: 8px; fill: #667; }
 .fd-face-lbl { font-size: 7.5px; fill: #b0392b; }
 
+/* ---- Tabel Item | Nilai (dokumen kalkulasi) ---- */
+table.items-tbl { width: 100%; border-collapse: collapse; margin: 4px 0 6px; break-inside: avoid; }
+table.items-tbl th { background: #11314f; color: #fff; font-size: 10px; font-weight: 700; text-align: left;
+  padding: 5px 9px; border: 1px solid #11314f; letter-spacing: .02em; }
+table.items-tbl td { border: 1px solid #c4d2e0; padding: 4px 9px; font-size: 10px; }
+table.items-tbl .it-k { width: 55%; color: #223; background: #f4f8fc; }
+table.items-tbl .it-v { color: #111; font-variant-numeric: tabular-nums; font-weight: 600; }
+table.items-tbl tr { break-inside: avoid; }
+
+/* ---- Sketsa 3D isometrik ---- */
+svg.iso .iso-front { fill: #cfc7b8; stroke: #6b6357; stroke-width: 1; stroke-linejoin: round; }
+svg.iso .iso-right { fill: #b3aa98; stroke: #6b6357; stroke-width: 1; stroke-linejoin: round; }
+svg.iso .iso-top { fill: #e7e2d8; stroke: #6b6357; stroke-width: 1; stroke-linejoin: round; }
+svg.iso .ped .iso-front, svg.iso .conc .iso-front { fill: #cfc7b8; }
+svg.iso .steel .iso-front { fill: #a9b7c6; } svg.iso .steel .iso-right { fill: #8ea0b3; } svg.iso .steel .iso-top { fill: #cdd8e5; }
+svg.iso .ped .iso-front { fill: #c3b7a2; } svg.iso .ped .iso-right { fill: #a89c85; } svg.iso .ped .iso-top { fill: #ddd3ba; }
+svg.iso .iso-grade { stroke: #9aa7b4; stroke-width: 1; stroke-dasharray: 4 3; }
+svg.iso .iso-lbl { font-size: 8.5px; font-weight: 700; fill: #0b2440; }
+
 /* ============================================================
    Dashboard shell (sidebar disiplin + main) + animasi
    ============================================================ */
