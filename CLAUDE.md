@@ -146,11 +146,30 @@ top-bar (greeting/search), stat cards, Quick Actions, interactive discipline car
 SVG icons come from `Icons.jsx` (`<Ic name=… />`). Only Civil's tools work; other disciplines and
 the Template/Favorites/Recycle-Bin items render a "segera hadir" placeholder. **Only `Civil` is built**: `CivilView.jsx` hosts the three tools
 (`KalkulatorView`, `MtoPage`, `ProgressPage`) under pill sub-tabs. `KalkulatorView.jsx` itself
-holds **two** sub-tabs — `CalculatorForm` (pondasi dangkal, backend `/calculate`) and
+holds **three** sub-tabs — `CalculatorForm` (pondasi dangkal, backend `/calculate`),
+`EquipmentFoundationForm` (pondasi equipment, **pure-frontend**), and
 `PipeSupportForm` (pipe support, **pure-frontend** simplified single-pile cantilever model from
 the FEED doc — ASCE 7 wind, SNI 1726 seismic Cs, pile Qmax/Qall & Tmax/Tall, Braja-Das pile
 settlement; STAAD/FEA remains the real reference, flagged as educational). The other disciplines render
-a "segera hadir" placeholder. Tool components keep their own `.app`/`.projects` containers; CSS
+a "segera hadir" placeholder.
+
+**Pondasi Equipment** (`EquipmentFoundationForm.jsx` + `equipmentFoundationCalc.js` +
+`EquipmentFoundationSketch.jsx`) is a block foundation for machinery — **no pedestal**, the
+equipment sits on the block and anchor bolts take its tension/shear. Calibrated against FEED doc
+DURI-TEST05NW000-CIV-CAL-PHR-2001-00 (fluid sump pump 5NW): Meyerhof bearing (doc uses depth
+factors Fqd=Fγd=1; `qall_manual` input overrides — the doc itself governs with the Soil-Data
+qall 27.48 kN/m², which is the shipped default), 13 service load combos (301–313: D/EE/EO/ET,
+wind SNI 1727 with 770 N/m² floor, seismic Cs + 0.14·SDS vertical, impact IL=1.2·EO), and 12
+checks incl. weight ratio Wf/EO ≥ 5 (RTS PHR, waives dynamic analysis), σmin ≥ 0, buoyancy,
+Braja-Das settlement (OC/NC via Pc′, Cc=0.009(LL−13)), footing flexure X/Z, and ACI 318-14
+Ch.17 anchor tension/shear/interaction (4-corner-bolt pattern). The calc engine is a **pure JS
+module** (no JSX) so node runs it directly — the validation harness is
+`frontend/smoke-equipment.mjs` (`node smoke-equipment.mjs` from `frontend/`; **must print
+"SEMUA COCOK DENGAN DOKUMEN"** after any calc change): doc-matching asserts on σmax 18.41,
+Mc 230.63, ϕNn 62.24, ϕVn 78.01 etc. Two knowing deviations from the doc's arithmetic (kept intentionally,
+verdicts unchanged): Si uses the full Steinbrenner Is = I1+(1−2μ)/(1−μ)·I2 (doc printed it but
+numerically used I1+I2), and wind moment arm = exposed-area centroid to base (doc printed Hg+Hf
+but used centroid-above-grade). Tool components keep their own `.app`/`.projects` containers; CSS
 neutralises their max-width/padding inside `.civil-body`. Print CSS hides `.ds-side`/`.civil-head`
 so the A4 report still prints clean.
 

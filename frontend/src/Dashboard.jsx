@@ -19,11 +19,11 @@ const DISC_CARDS = [
   { id: 'instrument', label: 'Instrument', desc: 'Tools & kalkulasi instrumentasi', acc: 'inst', icon: 'instrument', live: false,
     feats: ['3 Tools', '2 Calculator', '1 Reference Module'], cta: 'Lihat Instrument' },
   { id: 'civil', label: 'Civil', desc: 'Kalkulasi & tools teknik sipil', acc: 'civil', icon: 'civil', live: true,
-    feats: ['3 Tools', '2 Calculator', '1 Progress Module'], cta: 'Buka Civil Dashboard' },
+    feats: ['3 Tools', '3 Calculator', '1 Progress Module'], cta: 'Buka Civil Dashboard' },
 ];
 
 const CIVIL_TOOLS = [
-  { tool: 'calc', icon: 'calc', label: 'Kalkulator Pondasi', desc: 'Hitung pondasi dangkal & cek keamanan', use: '25 penggunaan minggu ini' },
+  { tool: 'calc', icon: 'calc', label: 'Kalkulator Pondasi', desc: 'Pondasi dangkal, equipment & pipe support', use: '25 penggunaan minggu ini' },
   { tool: 'mto', icon: 'box', label: 'MTO', desc: 'Volume & harga material (beton, besi, pipa)', use: '18 penggunaan minggu ini' },
   { tool: 'progress', icon: 'chart', label: 'Progress', desc: 'Project, dokumen & kurva-S', use: '12 update minggu ini' },
 ];
