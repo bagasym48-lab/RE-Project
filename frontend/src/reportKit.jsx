@@ -219,7 +219,7 @@ export function CantileverForceDiagram({ a, w, Vmax, Mmax, title = 'Gaya dalam f
         <text className="fd-lbl" x={x0 + 4} y={yS - sBand - 7} textAnchor="start">SFD (kN)</text>
         <line className="fd-axis" x1={x0} y1={yS} x2={x1} y2={yS} />
         <polygon className="fd-shear-fill" points={`${x0},${yS} ${poly(sfd)} ${x1},${yS}`} />
-        <text className="fd-val" x={x0 + 6} y={yS + sBand + 14} textAnchor="start">Vmax {f(Vmax)}</text>
+        <text className="fd-val" x={x0 + 6} y={yS - sBand + 14} textAnchor="start">Vmax {f(Vmax)}</text>
 
         {/* BMD */}
         <text className="fd-lbl" x={x0 + 4} y={yM - 10} textAnchor="start">BMD (kNm)</text>
