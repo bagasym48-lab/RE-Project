@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import FoundationSketch from './FoundationSketch.jsx';
 import DesignPanel from './DesignPanel.jsx';
 import { LogoMark } from './Logo.jsx';
-import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f } from './reportKit.jsx';
+import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, defProject } from './reportKit.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -72,12 +72,16 @@ function Field({ k, label, value, onChange, ...rest }) {
   );
 }
 
-export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp, setFd: setFdProp }) {
+export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp, setFd: setFdProp, project: projectProp, setProject: setProjectProp }) {
   // Dimensi bisa "diangkat" ke induk (CivilView) agar tersinkron dengan MTO Pondasi
   // Dangkal; fallback ke state lokal bila dipakai berdiri sendiri.
   const [fdLocal, setFdLocal] = useState(defaultFoundation);
   const fd = fdProp ?? fdLocal;
   const setFd = setFdProp ?? setFdLocal;
+  const [projLocal, setProjLocal] = useState(defProject);
+  const project = projectProp ?? projLocal;
+  const setProject = setProjectProp ?? setProjLocal;
+  const updProject = (k, v) => setProject((p) => ({ ...p, [k]: v }));
   const [soil, setSoil] = useState(defaultSoil);
   const [lcs, setLcs] = useState(defaultLCs);
   const [result, setResult] = useState(null);
@@ -155,6 +159,7 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
 
       <div className="layout">
         <section className="inputs">
+          <ProjectInfoForm project={project} onChange={updProject} />
           <fieldset className="group">
             <legend>Dimensi pondasi (mm)</legend>
             <div className="fields">
@@ -290,14 +295,14 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
         </aside>
       </div>
 
-      {result && <ReportSheet fd={fd} soil={soil} lcs={lcs} result={result} engineerName={engineerName} qcName={qcName} />}
+      {result && <ReportSheet fd={fd} soil={soil} lcs={lcs} result={result} project={project} engineerName={engineerName} qcName={qcName} />}
     </div>
   );
 }
 
 // ReportSheet — laporan A4 untuk dicetak/disimpan PDF. Disembunyikan di layar
 // (display:none), hanya tampil di @media print. Lihat .report-sheet di index.css.
-function ReportSheet({ fd, soil, lcs, result, engineerName, qcName }) {
+function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
   const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   // Nilai turunan untuk substitusi rumus (geometri saja; hasil fisika dari backend).
   const nz = (v) => (Number.isFinite(+v) ? +v : 0);
@@ -328,6 +333,7 @@ function ReportSheet({ fd, soil, lcs, result, engineerName, qcName }) {
   return (
     <div className="report-sheet">
       <FDDefs />
+      <ReportCover title="Kalkulasi Pondasi Dangkal" project={project} engineer={engineerName} qc={qcName} />
       <header className="rpt-head">
         <div className="rpt-brand">
           <LogoMark size={48} />

@@ -1,10 +1,92 @@
 // reportKit.jsx — komponen bersama untuk LAPORAN CETAK (PDF A4):
+//  • ReportCover : halaman sampul (banner judul + tagline + logo + info proyek + revisi)
+//  • ProjectInfoForm : input informasi proyek (dipakai di semua kalkulator)
 //  • Step  : satu baris rincian rumus  →  simbolik = substitusi angka = hasil (+ referensi)
 //  • Frac  : pecahan bertingkat, Ref : label referensi standar
 //  • Diagram gaya dalam (SFD/BMD): tekanan tanah, kantilever footing, kolom & beam
 // Semua murni presentasional (tanpa perhitungan) — angka dikirim dari pemanggil.
+import { LogoMark } from './Logo.jsx';
 
 export const f = (x, d = 2) => (Number.isFinite(Number(x)) ? Number(x).toFixed(d) : '—');
+
+// ============================================================
+// Informasi proyek (dipakai di form + cover laporan)
+// ============================================================
+export const defProject = {
+  jobNo: '', jobName: '', client: '', site: '',
+  docNo: '', refNo: '', structureName: '', loadCombo: '', rev: '', revDesc: '',
+};
+
+const PROJECT_FIELDS = [
+  ['jobNo', 'Project / Job No.'], ['jobName', 'Project / Job Name'],
+  ['client', 'Client Name'], ['site', 'Site Name'],
+  ['docNo', 'Document No.'], ['refNo', 'Reference No.'],
+  ['structureName', 'Structure Name'], ['loadCombo', 'Load Combination Group'],
+  ['rev', 'Rev No.'], ['revDesc', 'Rev — Description'],
+];
+
+// Fieldset input informasi proyek untuk panel kalkulator (bukan print).
+export function ProjectInfoForm({ project, onChange }) {
+  const p = project || {};
+  return (
+    <fieldset className="group">
+      <legend>Informasi proyek (untuk cover laporan PDF)</legend>
+      <div className="fields">
+        {PROJECT_FIELDS.map(([k, label]) => (
+          <label className="field" key={k} title={label}>
+            <span>{label}</span>
+            <input type="text" value={p[k] ?? ''} onChange={(e) => onChange(k, e.target.value)} />
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+// Halaman sampul laporan — hanya tampil saat cetak (di dalam .report-sheet).
+export function ReportCover({ title, project, engineer, qc }) {
+  const p = project || {};
+  const today = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const rows = [
+    ['PROJECT / JOB NO.', p.jobNo], ['PROJECT / JOB NAME', p.jobName],
+    ['CLIENT NAME', p.client], ['SITE NAME', p.site],
+    ['DOCUMENT NO.', p.docNo], ['REFERENCE NO.', p.refNo],
+    ['STRUCTURE NAME', p.structureName], ['LOAD COMBINATION GROUP', p.loadCombo],
+  ];
+  const nb = ' ';
+  return (
+    <section className="rpt-cover">
+      <div className="cov-banner">{title}</div>
+      <div className="cov-tagline">Smarter Engineering Starts Here</div>
+
+      <div className="cov-logo"><LogoMark size={120} /></div>
+
+      <table className="cov-info">
+        <thead><tr><th>TITLE</th><th>DESCRIPTION</th></tr></thead>
+        <tbody>
+          {rows.map(([k, v]) => <tr key={k}><td className="cov-k">{k}</td><td className="cov-v">{v || nb}</td></tr>)}
+        </tbody>
+      </table>
+
+      <table className="cov-rev">
+        <thead>
+          <tr><th>REV</th><th>DATE</th><th>DESCRIPTION</th><th>PREP&apos;D</th><th>CHK&apos;D</th><th>APPR&apos;D</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{p.rev || nb}</td><td>{p.rev ? today : nb}</td><td>{p.revDesc || nb}</td>
+            <td>{engineer || nb}</td><td>{qc || nb}</td><td>{nb}</td>
+          </tr>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <tr key={i}><td>{nb}</td><td>{nb}</td><td>{nb}</td><td>{nb}</td><td>{nb}</td><td>{nb}</td></tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="cov-foot">© 2026 RE-Project Engineering Suite · All Rights Reserved</div>
+    </section>
+  );
+}
 
 export function Frac({ n, d }) {
   return (

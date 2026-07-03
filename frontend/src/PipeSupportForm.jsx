@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
 import PipeSupportSketch from './PipeSupportSketch.jsx';
-import { Step, DerivGroup, Frac, FDDefs, ColumnForceDiagram, BeamForceDiagram, f } from './reportKit.jsx';
+import { Step, DerivGroup, Frac, FDDefs, ColumnForceDiagram, BeamForceDiagram, f, ProjectInfoForm, ReportCover, defProject } from './reportKit.jsx';
 
 const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const PI = Math.PI;
@@ -174,12 +174,16 @@ const GROUPS = [
   ]],
 ];
 
-export default function PipeSupportForm({ s: sProp, setS: setSProp }) {
+export default function PipeSupportForm({ s: sProp, setS: setSProp, project: projectProp, setProject: setProjectProp }) {
   // State bisa "diangkat" ke induk (CivilView) agar tersinkron dengan MTO Pipe
   // Support; fallback ke state lokal bila dipakai berdiri sendiri.
   const [sLocal, setSLocal] = useState(def);
   const s = sProp ?? sLocal;
   const setS = setSProp ?? setSLocal;
+  const [projLocal, setProjLocal] = useState(defProject);
+  const project = projectProp ?? projLocal;
+  const setProject = setProjectProp ?? setProjLocal;
+  const updProject = (k, v) => setProject((p) => ({ ...p, [k]: v }));
   const [engineerName, setEngineerName] = useState('');
   const [qcName, setQcName] = useState('');
   const upd = (k, v) => setS((o) => ({ ...o, [k]: v }));
@@ -196,6 +200,7 @@ export default function PipeSupportForm({ s: sProp, setS: setSProp }) {
 
       <div className="layout">
         <section className="inputs">
+          <ProjectInfoForm project={project} onChange={updProject} />
           {GROUPS.map(([title, fields]) => (
             <fieldset className="group" key={title}>
               <legend>{title}</legend>
@@ -249,13 +254,13 @@ export default function PipeSupportForm({ s: sProp, setS: setSProp }) {
         </aside>
       </div>
 
-      <PipeReportSheet s={s} r={r} engineerName={engineerName} qcName={qcName} />
+      <PipeReportSheet s={s} r={r} project={project} engineerName={engineerName} qcName={qcName} />
     </div>
   );
 }
 
 // Laporan A4 — disembunyikan di layar (.report-sheet display:none), tampil saat cetak.
-function PipeReportSheet({ s, r, engineerName, qcName }) {
+function PipeReportSheet({ s, r, project, engineerName, qcName }) {
   const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—');
   const Mbeam = (n(s.P_oper) * n(s.L)) / 4;
@@ -263,6 +268,7 @@ function PipeReportSheet({ s, r, engineerName, qcName }) {
   return (
     <div className="report-sheet">
       <FDDefs />
+      <ReportCover title="Kalkulasi Pipe Support" project={project} engineer={engineerName} qc={qcName} />
       <header className="rpt-head">
         <div className="rpt-brand">
           <LogoMark size={48} />

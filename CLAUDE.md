@@ -173,6 +173,19 @@ but used centroid-above-grade). Tool components keep their own `.app`/`.projects
 neutralises their max-width/padding inside `.civil-body`. Print CSS hides `.ds-side`/`.civil-head`
 so the A4 report still prints clean.
 
+**Every calculation report opens with a cover page** (`ReportCover` in `reportKit.jsx`, styled
+`.rpt-cover`/`.cov-*` in `index.css`). It mimics the AFES foundation-calc cover: a top banner with
+the **calculation name** (passed per calc as `title`, e.g. "Kalkulasi Pondasi Equipment"), the
+tagline **"Smarter Engineering Starts Here"**, the RE-Project `LogoMark`, a TITLE/DESCRIPTION table
+of project info (Project/Job No. → Load Combination Group), and a REV/DATE/DESCRIPTION/PREP'D/CHK'D/
+APPR'D revision table (first row auto-filled from `rev`/`revDesc`/today + engineer→PREP'D, qc→CHK'D).
+The cover has `break-after: page` so the report body starts on page 2. Project info is entered via
+`ProjectInfoForm` (a fieldset shown at the top of **all three** calculator input panels) and is a
+**shared, persisted state** — lifted to `CivilView` as `project`/`setProject`
+(`usePersistedState('projectInfo', defProject)`) and threaded through `KalkulatorView` to each form
+(controlled with a local fallback). Fill it once; it appears on whichever report you print.
+`defProject` + `ProjectInfoForm` + `ReportCover` are exported from `reportKit.jsx`.
+
 **Print reports show full derivations** (`frontend/src/reportKit.jsx`, shared by all three
 calculators). Every `report-sheet` has a **"Rincian perhitungan"** section built from `<Step>`
 rows (symbolic formula → number substitution → result → a blue `<Ref>` badge citing the standard,

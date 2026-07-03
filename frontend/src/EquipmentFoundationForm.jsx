@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
 import EquipmentFoundationSketch from './EquipmentFoundationSketch.jsx';
 import { compute, def } from './equipmentFoundationCalc.js';
-import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f } from './reportKit.jsx';
+import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, defProject } from './reportKit.jsx';
 
 const LABELS = {
   rasio_berat: 'Rasio berat fondasi ≥ 5× mesin (kN)',
@@ -70,12 +70,16 @@ function Field({ k, label, value, onChange }) {
   );
 }
 
-export default function EquipmentFoundationForm({ s: sProp, setS: setSProp }) {
+export default function EquipmentFoundationForm({ s: sProp, setS: setSProp, project: projectProp, setProject: setProjectProp }) {
   // State bisa "diangkat" ke induk (CivilView) agar tersinkron dengan MTO; fallback
   // ke state lokal bila dipakai berdiri sendiri.
   const [sLocal, setSLocal] = useState(def);
   const s = sProp ?? sLocal;
   const setS = setSProp ?? setSLocal;
+  const [projLocal, setProjLocal] = useState(defProject);
+  const project = projectProp ?? projLocal;
+  const setProject = setProjectProp ?? setProjLocal;
+  const updProject = (k, v) => setProject((p) => ({ ...p, [k]: v }));
   const [engineerName, setEngineerName] = useState('');
   const [qcName, setQcName] = useState('');
   const upd = (k, v) => setS((o) => ({ ...o, [k]: v }));
@@ -92,6 +96,7 @@ export default function EquipmentFoundationForm({ s: sProp, setS: setSProp }) {
 
       <div className="layout">
         <section className="inputs">
+          <ProjectInfoForm project={project} onChange={updProject} />
           {GROUPS.map(([title, fields]) => (
             <fieldset className="group" key={title}>
               <legend>{title}</legend>
@@ -148,13 +153,13 @@ export default function EquipmentFoundationForm({ s: sProp, setS: setSProp }) {
         </aside>
       </div>
 
-      <EquipmentReportSheet s={s} r={r} engineerName={engineerName} qcName={qcName} />
+      <EquipmentReportSheet s={s} r={r} project={project} engineerName={engineerName} qcName={qcName} />
     </div>
   );
 }
 
 // Laporan A4 — tersembunyi di layar (.report-sheet display:none), tampil saat cetak.
-function EquipmentReportSheet({ s, r, engineerName, qcName }) {
+function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
   const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—');
   const i = r.info;
@@ -165,6 +170,7 @@ function EquipmentReportSheet({ s, r, engineerName, qcName }) {
   return (
     <div className="report-sheet">
       <FDDefs />
+      <ReportCover title="Kalkulasi Pondasi Equipment" project={project} engineer={engineerName} qc={qcName} />
       <header className="rpt-head">
         <div className="rpt-brand">
           <LogoMark size={48} />

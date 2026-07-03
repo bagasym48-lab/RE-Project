@@ -11,7 +11,7 @@ const SUBS = [
   { id: 'pipe', label: 'Pipe Support' },
 ];
 
-export default function KalkulatorView({ userId, profile, userEmail, equip, setEquip, pondasi, setPondasi, pipe, setPipe }) {
+export default function KalkulatorView({ userId, profile, userEmail, equip, setEquip, pondasi, setPondasi, pipe, setPipe, project, setProject }) {
   const [sub, setSub] = useState('pondasi');
   return (
     <div className="kalk">
@@ -20,9 +20,9 @@ export default function KalkulatorView({ userId, profile, userEmail, equip, setE
           <button key={x.id} className={sub === x.id ? 'active' : ''} onClick={() => setSub(x.id)}>{x.label}</button>
         ))}
       </div>
-      {sub === 'pondasi' && <CalculatorForm userId={userId} profile={profile} userEmail={userEmail} fd={pondasi} setFd={setPondasi} />}
-      {sub === 'equipment' && <EquipmentFoundationForm s={equip} setS={setEquip} />}
-      {sub === 'pipe' && <PipeSupportForm s={pipe} setS={setPipe} />}
+      {sub === 'pondasi' && <CalculatorForm userId={userId} profile={profile} userEmail={userEmail} fd={pondasi} setFd={setPondasi} project={project} setProject={setProject} />}
+      {sub === 'equipment' && <EquipmentFoundationForm s={equip} setS={setEquip} project={project} setProject={setProject} />}
+      {sub === 'pipe' && <PipeSupportForm s={pipe} setS={setPipe} project={project} setProject={setProject} />}
     </div>
   );
 }

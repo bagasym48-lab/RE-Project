@@ -6,6 +6,7 @@ import ProgressPage from './ProgressPage.jsx';
 import { defaultFoundation } from './CalculatorForm.jsx';
 import { def as pipeDef } from './PipeSupportForm.jsx';
 import { def as equipDef } from './equipmentFoundationCalc.js';
+import { defProject } from './reportKit.jsx';
 
 const TOOLS = [
   { id: 'calc', icon: '🧮', label: 'Kalkulator' },
@@ -33,6 +34,7 @@ export default function CivilView({ userId, role, profile, userEmail, tool, onTo
   const [pondasi, setPondasi] = usePersistedState('pondasiInput', defaultFoundation);
   const [equip, setEquip] = usePersistedState('equipFoundationInput', equipDef);
   const [pipe, setPipe] = usePersistedState('pipeInput', pipeDef);
+  const [project, setProject] = usePersistedState('projectInfo', defProject);
   return (
     <div className="civil fade-in">
       <div className="civil-head">
@@ -50,7 +52,7 @@ export default function CivilView({ userId, role, profile, userEmail, tool, onTo
       </div>
 
       <div className="civil-body">
-        {t === 'calc' && <KalkulatorView userId={userId} profile={profile} userEmail={userEmail} pondasi={pondasi} setPondasi={setPondasi} equip={equip} setEquip={setEquip} pipe={pipe} setPipe={setPipe} />}
+        {t === 'calc' && <KalkulatorView userId={userId} profile={profile} userEmail={userEmail} pondasi={pondasi} setPondasi={setPondasi} equip={equip} setEquip={setEquip} pipe={pipe} setPipe={setPipe} project={project} setProject={setProject} />}
         {t === 'mto' && <MtoPage pondasi={pondasi} equip={equip} pipe={pipe} />}
         {t === 'progress' && <ProgressPage userId={userId} role={role} />}
       </div>

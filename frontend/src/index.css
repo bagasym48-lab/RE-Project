@@ -398,6 +398,28 @@ table.rpt-table tr { break-inside: avoid; }
 .rpt-name { margin-top: 5px; font-size: 10.5px; font-weight: 700; color: #111; min-height: 13px; }
 .rpt-role { font-size: 9px; color: #556; letter-spacing: .04em; }
 
+/* ---- Cover laporan (halaman sampul, tampil di dalam .report-sheet saat cetak) ---- */
+.rpt-cover { break-after: page; page-break-after: always; padding: 2mm 1mm 6mm; }
+.cov-banner { text-align: center; font-size: 22px; font-weight: 800; letter-spacing: .02em;
+  color: #0b2440; padding: 16px 12px; border: 1.5px solid #7fb0dd; border-radius: 4px;
+  background: linear-gradient(180deg, #dcecfb, #bcdcf5); text-transform: uppercase; line-height: 1.25; }
+.cov-tagline { text-align: center; font-size: 16px; font-weight: 800; color: #fff; padding: 11px 12px;
+  margin-top: 10px; border-radius: 4px; background: linear-gradient(135deg, #1f6fb2, #2f9e44); letter-spacing: .02em; }
+.cov-logo { text-align: center; margin: 48px 0 44px; }
+.cov-logo img { height: 120px; width: auto; }
+.cov-info, .cov-rev { width: 100%; border-collapse: collapse; }
+.cov-info { margin-top: 6px; }
+.cov-info th, .cov-rev th { background: #11314f; color: #fff; font-size: 11px; font-weight: 700;
+  padding: 7px 10px; border: 1px solid #11314f; text-align: left; letter-spacing: .03em; }
+.cov-info td { border: 1px solid #b9c8d8; padding: 8px 10px; font-size: 11.5px; }
+.cov-info .cov-k { width: 42%; font-weight: 700; color: #0b2440; background: #eef4fb; }
+.cov-info .cov-v { color: #111; }
+.cov-rev { margin-top: 16px; }
+.cov-rev th { text-align: center; }
+.cov-rev td { border: 1px solid #b9c8d8; padding: 7px 6px; font-size: 10.5px; text-align: center; height: 18px; color: #111; }
+.cov-rev td:nth-child(3) { text-align: left; }
+.cov-foot { text-align: center; font-size: 9.5px; color: #667; margin-top: 22px; }
+
 /* ---- Rincian perhitungan (rumus + substitusi + referensi) ---- */
 .rpt-ref { display: inline-block; font-size: 8.5px; font-weight: 700; color: #1f6fb2;
   background: #eef4fb; border: 1px solid #d5e3f2; border-radius: 4px; padding: 0 5px; margin-left: 6px;
