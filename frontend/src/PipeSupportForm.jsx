@@ -15,7 +15,7 @@ import { Step, DerivGroup, Frac, FDDefs, ColumnForceDiagram, BeamForceDiagram, f
 const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const PI = Math.PI;
 
-const def = {
+export const def = {
   // Geometri
   H_above: 0.50,   // tinggi di atas tanah (m)
   depth: 2.51,     // kedalaman ke titik fixity di bawah tanah (m)
@@ -174,8 +174,12 @@ const GROUPS = [
   ]],
 ];
 
-export default function PipeSupportForm() {
-  const [s, setS] = useState(def);
+export default function PipeSupportForm({ s: sProp, setS: setSProp }) {
+  // State bisa "diangkat" ke induk (CivilView) agar tersinkron dengan MTO Pipe
+  // Support; fallback ke state lokal bila dipakai berdiri sendiri.
+  const [sLocal, setSLocal] = useState(def);
+  const s = sProp ?? sLocal;
+  const setS = setSProp ?? setSLocal;
   const [engineerName, setEngineerName] = useState('');
   const [qcName, setQcName] = useState('');
   const upd = (k, v) => setS((o) => ({ ...o, [k]: v }));

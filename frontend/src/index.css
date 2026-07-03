@@ -265,6 +265,7 @@ table.logs select, table.logs input { border: 1px solid var(--line-strong); bord
 .field.linked input { background: #eef4fb; border-color: #d5e3f2; color: #1f6fb2; font-weight: 700;
   cursor: default; }
 .field.linked input:focus { outline: none; box-shadow: none; }
+.mto-empty { padding: 6px 4px; font-size: 11.5px; color: var(--muted); font-style: italic; }
 
 /* Hapus project (role leader) */
 .wi-row { display: flex; gap: 6px; align-items: stretch; margin-bottom: 6px; }

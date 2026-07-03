@@ -20,33 +20,37 @@ function NumField({ label, value, onChange, step = 'any' }) {
 // ============================================================
 // MTO Pondasi Dangkal
 // ============================================================
-const defPondasi = {
-  B: 1500, L: 1500, h: 300, c1: 400, c2: 400, Hp: 700, n_pedestal: 1, cover: 75,
-  fD: 16, fS: 150, lapis: 2,
-  pvN: 8, pvD: 16, tieD: 10, tieS: 150,
+const defMtoPondasi = {
+  lapis: 2, pvN: 8, pvD: 16, tieD: 10, tieS: 150,
   hBeton: 1200000, hBesi: 15000,
 };
 
-function MtoPondasi() {
-  const [v, setV] = useState(defPondasi);
+function MtoPondasi({ fd }) {
+  const [v, setV] = useState(defMtoPondasi);
   const upd = (k) => (val) => setV((s) => ({ ...s, [k]: val }));
   const g = (k) => num(v[k]);
+  const f = fd || {};
+  const fg = (k) => num(f[k]);
 
-  const np = Math.max(1, Math.round(g('n_pedestal')));
-  const volBeton = (g('B') * g('L') * g('h') + np * g('c1') * g('c2') * g('Hp')) / 1e9;
+  // Geometri dari kalkulasi (mm); Ø & spasi tul. footing ikut kalkulasi (db, srl)
+  const B = fg('B'), L = fg('L'), h = fg('h'), c1 = fg('c1'), c2 = fg('c2'), Hp = fg('Hp');
+  const cover = fg('cover'), fD = fg('db'), fS = Math.max(fg('srl'), 1);
+  const np = Math.max(1, Math.round(fg('n_pedestal')));
+
+  const volBeton = (B * L * h + np * c1 * c2 * Hp) / 1e9;
 
   // Tulangan footing — jaring dua arah
-  const nx = Math.floor(g('L') / Math.max(g('fS'), 1)) + 1;
-  const ny = Math.floor(g('B') / Math.max(g('fS'), 1)) + 1;
-  const lenX = Math.max(g('B') - 2 * g('cover'), 0) / 1000;
-  const lenY = Math.max(g('L') - 2 * g('cover'), 0) / 1000;
+  const nx = Math.floor(L / fS) + 1;
+  const ny = Math.floor(B / fS) + 1;
+  const lenX = Math.max(B - 2 * cover, 0) / 1000;
+  const lenY = Math.max(L - 2 * cover, 0) / 1000;
   const totLenFoot = (nx * lenX + ny * lenY) * Math.max(g('lapis'), 1);
-  const beratFoot = totLenFoot * kgmRebar(g('fD'));
+  const beratFoot = totLenFoot * kgmRebar(fD);
 
-  // Tulangan pedestal — vertikal + sengkang
-  const beratVert = g('pvN') * (g('Hp') / 1000) * kgmRebar(g('pvD')) * np;
-  const nTies = Math.floor(g('Hp') / Math.max(g('tieS'), 1)) + 1;
-  const lenTie = Math.max(2 * (g('c1') + g('c2')) - 8 * g('cover'), 0) / 1000;
+  // Tulangan pedestal — vertikal + sengkang (parameter MTO)
+  const beratVert = g('pvN') * (Hp / 1000) * kgmRebar(g('pvD')) * np;
+  const nTies = Math.floor(Hp / Math.max(g('tieS'), 1)) + 1;
+  const lenTie = Math.max(2 * (c1 + c2) - 8 * cover, 0) / 1000;
   const beratTie = nTies * lenTie * kgmRebar(g('tieD')) * np;
 
   const beratBesi = beratFoot + beratVert + beratTie;
@@ -57,32 +61,28 @@ function MtoPondasi() {
   return (
     <div className="layout">
       <section className="inputs">
+        <p className="mto-link-note">🔗 Dimensi tersinkron dengan <b>Kalkulasi Pondasi Dangkal</b>. Ubah dimensi di kalkulasi → MTO ikut berubah otomatis.</p>
+
         <fieldset className="group">
-          <legend>Dimensi pondasi (mm)</legend>
+          <legend>Dimensi (dari kalkulasi · read-only)</legend>
           <div className="fields">
-            <NumField label="B — lebar footing" value={v.B} onChange={upd('B')} />
-            <NumField label="L — panjang footing" value={v.L} onChange={upd('L')} />
-            <NumField label="h — tebal footing" value={v.h} onChange={upd('h')} />
-            <NumField label="c1 — panjang pedestal" value={v.c1} onChange={upd('c1')} />
-            <NumField label="c2 — lebar pedestal" value={v.c2} onChange={upd('c2')} />
-            <NumField label="Hp — tinggi pedestal" value={v.Hp} onChange={upd('Hp')} />
-            <NumField label="jumlah pedestal" value={v.n_pedestal} onChange={upd('n_pedestal')} step="1" />
-            <NumField label="selimut beton" value={v.cover} onChange={upd('cover')} />
+            <LinkedField label="B — lebar footing (mm)" value={B} />
+            <LinkedField label="L — panjang footing (mm)" value={L} />
+            <LinkedField label="h — tebal footing (mm)" value={h} />
+            <LinkedField label="c1 — panjang pedestal (mm)" value={c1} />
+            <LinkedField label="c2 — lebar pedestal (mm)" value={c2} />
+            <LinkedField label="Hp — tinggi pedestal (mm)" value={Hp} />
+            <LinkedField label="jumlah pedestal" value={np} />
+            <LinkedField label="selimut beton (mm)" value={cover} />
+            <LinkedField label="Ø tul. footing (mm)" value={fD} />
+            <LinkedField label="spasi tul. footing (mm)" value={fS} />
           </div>
         </fieldset>
 
         <fieldset className="group">
-          <legend>Tulangan footing</legend>
+          <legend>Tulangan pedestal &amp; lapis (parameter MTO)</legend>
           <div className="fields">
-            <NumField label="Ø tul. footing (mm)" value={v.fD} onChange={upd('fD')} />
-            <NumField label="spasi (mm)" value={v.fS} onChange={upd('fS')} />
-            <NumField label="lapis (1=bawah, 2=atas+bawah)" value={v.lapis} onChange={upd('lapis')} step="1" />
-          </div>
-        </fieldset>
-
-        <fieldset className="group">
-          <legend>Tulangan pedestal</legend>
-          <div className="fields">
+            <NumField label="lapis footing (1=bawah, 2=atas+bawah)" value={v.lapis} onChange={upd('lapis')} step="1" />
             <NumField label="jumlah tul. vertikal" value={v.pvN} onChange={upd('pvN')} step="1" />
             <NumField label="Ø vertikal (mm)" value={v.pvD} onChange={upd('pvD')} />
             <NumField label="Ø sengkang (mm)" value={v.tieD} onChange={upd('tieD')} />
@@ -105,7 +105,7 @@ function MtoPondasi() {
           <table className="res mto-res">
             <tbody>
               <tr><td>Volume beton</td><td className="num">{volBeton.toFixed(3)} m³</td></tr>
-              <tr><td>Besi footing ({nx}+{ny} batang × {Math.max(num(v.lapis), 1)} lapis)</td><td className="num">{beratFoot.toFixed(1)} kg</td></tr>
+              <tr><td>Besi footing ({nx}+{ny} batang × {Math.max(g('lapis'), 1)} lapis)</td><td className="num">{beratFoot.toFixed(1)} kg</td></tr>
               <tr><td>Besi vertikal pedestal</td><td className="num">{beratVert.toFixed(1)} kg</td></tr>
               <tr><td>Besi sengkang ({nTies}×)</td><td className="num">{beratTie.toFixed(1)} kg</td></tr>
               <tr className="sub"><td>Total besi</td><td className="num">{beratBesi.toFixed(1)} kg</td></tr>
@@ -134,45 +134,77 @@ const PIPE_TYPES = [
   { nama: 'CS Pipe 10" Sch40', kgm: 60.31 },
 ];
 
-function MtoPipe() {
-  const [rows, setRows] = useState([{ t: 2, panjang: 6, jumlah: 4 }]);
+function MtoPipe({ pipe }) {
+  const p = pipe || {};
+  const pg = (k) => num(p[k]);
+  // Section pipa baja dari kalkulasi (Do,t mm) → kg/m (baja karbon)
+  const Do = pg('Do'), t = pg('t');
+  const kgmLinked = Math.max((Do - t) * t * 0.0246615, 0);
+  const colLen = pg('H_above') + pg('depth');   // panjang kolom = H atas + kedalaman (m)
+  const beamLen = pg('L');                        // panjang beam (m)
+
+  const [qty, setQty] = useState(1);
+  const [rows, setRows] = useState([]);           // pipa tambahan (opsional)
   const [hBesi, setHBesi] = useState(18000);
 
   const updRow = (i, k, val) => setRows((arr) => arr.map((r, idx) => (idx === i ? { ...r, [k]: val } : r)));
   const addRow = () => setRows((arr) => [...arr, { t: 2, panjang: 6, jumlah: 1 }]);
-  const delRow = (i) => setRows((arr) => (arr.length > 1 ? arr.filter((_, idx) => idx !== i) : arr));
+  const delRow = (i) => setRows((arr) => arr.filter((_, idx) => idx !== i));
+
+  const nSup = Math.max(0, num(qty));
+  const lenLinked = (colLen + beamLen) * nSup;
+  const beratLinked = kgmLinked * lenLinked;
 
   const calc = rows.map((r) => {
     const kgm = PIPE_TYPES[r.t]?.kgm || 0;
     const totLen = num(r.panjang) * num(r.jumlah);
-    const berat = kgm * totLen;
-    return { kgm, totLen, berat, harga: berat * num(hBesi) };
+    return { kgm, totLen, berat: kgm * totLen };
   });
-  const totLen = calc.reduce((s, c) => s + c.totLen, 0);
-  const totBerat = calc.reduce((s, c) => s + c.berat, 0);
-  const totHarga = calc.reduce((s, c) => s + c.harga, 0);
+  const lenManual = calc.reduce((s, c) => s + c.totLen, 0);
+  const beratManual = calc.reduce((s, c) => s + c.berat, 0);
+  const totLen = lenLinked + lenManual;
+  const totBerat = beratLinked + beratManual;
+  const totHarga = totBerat * num(hBesi);
 
   return (
     <div className="layout">
       <section className="inputs">
+        <p className="mto-link-note">🔗 Penampang &amp; panjang member tersinkron dengan <b>Kalkulasi Pipe Support</b>. Ubah di kalkulasi → MTO ikut berubah otomatis.</p>
+
         <fieldset className="group">
-          <legend>Daftar steel pipe</legend>
+          <legend>Baja dari kalkulasi (read-only)</legend>
+          <div className="fields">
+            <LinkedField label="Ø luar pipa Do (mm)" value={Do} />
+            <LinkedField label="tebal t (mm)" value={t} />
+            <LinkedField label="berat pipa (kg/m)" value={kgmLinked.toFixed(2)} />
+            <LinkedField label="panjang kolom = H+kedalaman (m)" value={colLen.toFixed(2)} />
+            <LinkedField label="panjang beam L (m)" value={beamLen.toFixed(2)} />
+            <label className="field" title="jumlah support identik">
+              <span>jumlah support identik</span>
+              <input type="number" step="1" value={qty} onChange={(e) => setQty(e.target.value)} />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset className="group">
+          <legend>Pipa tambahan (opsional)</legend>
           <div className="lc-wrap">
             <table className="lc mto-pipe">
               <thead><tr><th>Jenis</th><th>kg/m</th><th>Panjang (m)</th><th>Jumlah</th><th>Berat (kg)</th><th></th></tr></thead>
               <tbody>
+                {rows.length === 0 && <tr><td colSpan={6} className="mto-empty">Belum ada pipa tambahan.</td></tr>}
                 {rows.map((r, i) => (
                   <tr key={i}>
                     <td>
                       <select value={r.t} onChange={(e) => updRow(i, 't', Number(e.target.value))}>
-                        {PIPE_TYPES.map((p, idx) => <option key={idx} value={idx}>{p.nama}</option>)}
+                        {PIPE_TYPES.map((p2, idx) => <option key={idx} value={idx}>{p2.nama}</option>)}
                       </select>
                     </td>
                     <td className="num">{(PIPE_TYPES[r.t]?.kgm || 0).toFixed(2)}</td>
                     <td><input type="number" step="any" value={r.panjang} onChange={(e) => updRow(i, 'panjang', e.target.value)} /></td>
                     <td><input type="number" step="1" value={r.jumlah} onChange={(e) => updRow(i, 'jumlah', e.target.value)} /></td>
                     <td className="num">{calc[i].berat.toFixed(1)}</td>
-                    <td><button className="del" onClick={() => delRow(i)} disabled={rows.length <= 1} title="hapus baris">✕</button></td>
+                    <td><button className="del" onClick={() => delRow(i)} title="hapus baris">✕</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -194,12 +226,14 @@ function MtoPipe() {
           <h2>Hasil MTO — Pipe Support</h2>
           <table className="res mto-res">
             <tbody>
+              <tr><td>Baja terhubung — kolom + beam ({nSup}×)</td><td className="num">{beratLinked.toFixed(1)} kg</td></tr>
+              {beratManual > 0 && <tr><td>Pipa tambahan</td><td className="num">{beratManual.toFixed(1)} kg</td></tr>}
               <tr><td>Total panjang pipa</td><td className="num">{totLen.toFixed(1)} m</td></tr>
               <tr className="sub"><td>Total berat</td><td className="num">{totBerat.toFixed(1)} kg</td></tr>
               <tr className="total"><td>TOTAL HARGA</td><td className="num">{rupiah(totHarga)}</td></tr>
             </tbody>
           </table>
-          <p className="muted-note">Berat dari tabel pipa baja karbon (Sch 40); harga berbasis berat. Belum termasuk fitting, coating, upah, dll. Wajib diverifikasi.</p>
+          <p className="muted-note">Berat pipa baja = (Do−t)·t·0.0246615 kg/m. Belum termasuk fitting, base plate, coating, upah, dll. Wajib diverifikasi.</p>
         </div>
       </aside>
     </div>
@@ -325,22 +359,22 @@ function MtoEquipment({ equip }) {
   );
 }
 
-export default function MtoPage({ equip }) {
+export default function MtoPage({ pondasi, equip, pipe }) {
   const [sub, setSub] = useState('pondasi');
   return (
     <div className="app">
       <header className="head">
         <h1>MTO — Material Take-Off</h1>
-        <p className="sub">Estimasi volume/berat &amp; harga material pekerjaan</p>
+        <p className="sub">Estimasi volume/berat &amp; harga material pekerjaan · tersinkron dengan kalkulasi</p>
       </header>
       <div className="mto-subtabs">
         <button className={sub === 'pondasi' ? 'active' : ''} onClick={() => setSub('pondasi')}>MTO Pondasi Dangkal</button>
         <button className={sub === 'equipment' ? 'active' : ''} onClick={() => setSub('equipment')}>MTO Pondasi Equipment</button>
         <button className={sub === 'pipe' ? 'active' : ''} onClick={() => setSub('pipe')}>MTO Pipe Support</button>
       </div>
-      {sub === 'pondasi' && <MtoPondasi />}
+      {sub === 'pondasi' && <MtoPondasi fd={pondasi} />}
       {sub === 'equipment' && <MtoEquipment equip={equip} />}
-      {sub === 'pipe' && <MtoPipe />}
+      {sub === 'pipe' && <MtoPipe pipe={pipe} />}
     </div>
   );
 }

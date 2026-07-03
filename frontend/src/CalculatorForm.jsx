@@ -72,8 +72,12 @@ function Field({ k, label, value, onChange, ...rest }) {
   );
 }
 
-export default function CalculatorForm({ userId, profile, userEmail }) {
-  const [fd, setFd] = useState(defaultFoundation);
+export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp, setFd: setFdProp }) {
+  // Dimensi bisa "diangkat" ke induk (CivilView) agar tersinkron dengan MTO Pondasi
+  // Dangkal; fallback ke state lokal bila dipakai berdiri sendiri.
+  const [fdLocal, setFdLocal] = useState(defaultFoundation);
+  const fd = fdProp ?? fdLocal;
+  const setFd = setFdProp ?? setFdLocal;
   const [soil, setSoil] = useState(defaultSoil);
   const [lcs, setLcs] = useState(defaultLCs);
   const [result, setResult] = useState(null);

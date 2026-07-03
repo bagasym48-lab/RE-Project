@@ -195,15 +195,25 @@ lean-concrete + two-way mesh rebar + anchor-bolt steel weight → cost), and **P
 (steel-pipe table by type/length/qty → weight → cost). Rebar weight `0.006165·d²` kg/m; pipe
 weights are a Sch-40 `kg/m` catalog. Educational estimate — excludes formwork/labour/fittings.
 
-**Equipment MTO is linked to the equipment calculator.** The `EquipmentFoundationForm` input
-state is **lifted to `CivilView`** (`equip`/`setEquip`, persisted to `localStorage` key
-`equipFoundationInput`) and passed to **both** `KalkulatorView`→`EquipmentFoundationForm`
-(`s`/`setS` props — the form is now controlled, with a local-state fallback so it still runs
-standalone) **and** `MtoPage`→`MtoEquipment`. So editing dimensions in the calculator flows
-straight into the MTO (`MtoEquipment` shows the geometry as read-only `LinkedField`s; only
-MTO-specific params — layers, lean-concrete thickness, waste %, unit prices — are editable there).
-CivilView stays mounted across tool switches, so the shared state persists. If you add another
-linked calc↔MTO pair, follow the same lift-to-CivilView pattern rather than duplicating inputs.
+**All three MTOs are linked to their calculators.** Each calculator's input state is **lifted to
+`CivilView`** via a `usePersistedState(key, default)` helper (each persisted to its own
+`localStorage` key: `pondasiInput`, `equipFoundationInput`, `pipeInput`) and passed to **both**
+the calculator and the matching MTO sub-tab:
+- **Pondasi Dangkal**: `CalculatorForm` (controlled via `fd`/`setFd`, only the `fd` foundation
+  dataclass is lifted — `soil`/`lcs` stay local) ↔ `MtoPondasi` (`fd` prop). Linked geometry
+  includes `db`→Ø footing rebar and `srl`→spacing; pedestal rebar + layers + prices are MTO-only.
+- **Pondasi Equipment**: `EquipmentFoundationForm` (`s`/`setS`) ↔ `MtoEquipment` (`equip` prop).
+- **Pipe Support**: `PipeSupportForm` (`s`/`setS`) ↔ `MtoPipe` (`pipe` prop). The MTO derives the
+  column+beam steel from the calc's section (`kg/m = (Do−t)·t·0.0246615`) and member lengths
+  (column = `H_above+depth`, beam = `L`); it also keeps an optional manual pipe table for extras.
+
+Every calculator form is now **controlled with a local-state fallback** (`sProp ?? sLocal`) so it
+still runs standalone. Each MTO shows linked values as read-only `LinkedField`s (blue-tinted) with
+a `.mto-link-note` banner; only MTO-specific params (rebar detail, prices, waste, qty) are editable.
+CivilView stays mounted across tool switches so the shared state persists. `defaultFoundation`
+(CalculatorForm) and `def` (PipeSupportForm, equipmentFoundationCalc) are **exported** for the
+CivilView initial state — keep them exported. To add another linked calc↔MTO pair, follow the same
+lift-to-CivilView pattern rather than duplicating inputs.
 
 ## Environment
 Backend `.env` (in `backend/`): `CORS_ORIGINS`. Frontend `.env` (in the Vite project root):
