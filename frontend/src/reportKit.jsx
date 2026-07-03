@@ -88,6 +88,25 @@ export function ReportCover({ title, project, engineer, qc }) {
   );
 }
 
+// Daftar isi laporan — items = [[judul utama, [sub, sub, ...]], ...]. Hanya tampil saat cetak.
+export function ReportTOC({ items }) {
+  return (
+    <section className="rpt-toc">
+      <div className="cov-banner">DAFTAR ISI</div>
+      <ol className="toc-list">
+        {items.map(([main, subs], i) => (
+          <li key={i}>
+            <span className="toc-main">{main}</span>
+            {subs && subs.length > 0 && (
+              <ul className="toc-sub">{subs.map((sub, j) => <li key={j}>{sub}</li>)}</ul>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 export function Frac({ n, d }) {
   return (
     <span className="frac"><span className="fr-n">{n}</span><span className="fr-d">{d}</span></span>
@@ -294,80 +313,6 @@ export function ItemsTable({ head = ['Item', 'Nilai'], rows }) {
         ))}
       </tbody>
     </table>
-  );
-}
-
-// --- Proyeksi isometrik: x = lebar (kanan-depan), z = kedalaman (belakang), y = tinggi ---
-const ISO = { ax: 0.866, ay: 0.5 };
-const isoPt = (x, y, z, o) => [o.x + (x - z) * ISO.ax, o.y + (x + z) * ISO.ay - y];
-
-function IsoBox({ x = 0, y = 0, z = 0, w, h, d, o, cls = '' }) {
-  const P = (X, Y, Z) => isoPt(x + X, y + Y, z + Z, o).join(',');
-  return (
-    <g className={`iso-box ${cls}`}>
-      <polygon className="iso-front" points={`${P(0, 0, 0)} ${P(w, 0, 0)} ${P(w, h, 0)} ${P(0, h, 0)}`} />
-      <polygon className="iso-right" points={`${P(w, 0, 0)} ${P(w, 0, d)} ${P(w, h, d)} ${P(w, h, 0)}`} />
-      <polygon className="iso-top" points={`${P(0, h, 0)} ${P(w, h, 0)} ${P(w, h, d)} ${P(0, h, d)}`} />
-    </g>
-  );
-}
-
-// Sketsa 3D pondasi telapak: pelat footing + pedestal (opsional) di atasnya.
-export function Iso3DFooting({ B, L, H, pedestal, title = 'Sketsa 3D isometrik' }) {
-  const o = { x: 120, y: 170 }, fw = 140, fd = 96, fh = 20, pw = 46, pd = 46, ph = 52;
-  const pt = (x, y, z) => isoPt(x, y, z, o);
-  return (
-    <figure className="fd">
-      <figcaption>{title}</figcaption>
-      <svg className="draw iso" viewBox="0 0 320 250" role="img" aria-label={title}>
-        <IsoBox o={o} w={fw} h={fh} d={fd} cls="conc" />
-        {pedestal && <IsoBox o={o} x={(fw - pw) / 2} y={fh} z={(fd - pd) / 2} w={pw} h={ph} d={pd} cls="ped" />}
-        <text className="iso-lbl" x={pt(fw / 2, 0, 0)[0]} y={pt(fw / 2, 0, 0)[1] + 14} textAnchor="middle">B = {B} mm</text>
-        <text className="iso-lbl" x={pt(fw, 0, fd / 2)[0] + 6} y={pt(fw, 0, fd / 2)[1] + 12} textAnchor="start">L = {L} mm</text>
-        <text className="iso-lbl" x={pt(0, fh / 2, 0)[0] - 6} y={pt(0, fh / 2, 0)[1]} textAnchor="end">H = {H} mm</text>
-        {pedestal && <text className="iso-lbl" x={pt(fw / 2, fh + ph, fd / 2)[0]} y={pt(fw / 2, fh + ph, fd / 2)[1] - 6} textAnchor="middle">pedestal</text>}
-      </svg>
-    </figure>
-  );
-}
-
-// Sketsa 3D pondasi equipment: blok beton + kotak equipment di atasnya.
-export function Iso3DEquipment({ Lf, Bf, Hf, title = 'Sketsa 3D isometrik' }) {
-  const o = { x: 120, y: 170 }, fw = 150, fd = 88, fh = 30, ew = 84, ed = 46, eh = 40;
-  const pt = (x, y, z) => isoPt(x, y, z, o);
-  return (
-    <figure className="fd">
-      <figcaption>{title}</figcaption>
-      <svg className="draw iso" viewBox="0 0 320 250" role="img" aria-label={title}>
-        <IsoBox o={o} w={fw} h={fh} d={fd} cls="conc" />
-        <IsoBox o={o} x={(fw - ew) / 2} y={fh} z={(fd - ed) / 2} w={ew} h={eh} d={ed} cls="steel" />
-        <text className="iso-lbl" x={pt((fw + ew) / 2 - ew / 2, fh + eh, (fd) / 2)[0]} y={pt(fw / 2, fh + eh, fd / 2)[1] - 6} textAnchor="middle">EQUIPMENT</text>
-        <text className="iso-lbl" x={pt(fw / 2, 0, 0)[0]} y={pt(fw / 2, 0, 0)[1] + 14} textAnchor="middle">Lf = {Lf} m</text>
-        <text className="iso-lbl" x={pt(fw, 0, fd / 2)[0] + 6} y={pt(fw, 0, fd / 2)[1] + 12} textAnchor="start">Bf = {Bf} m</text>
-        <text className="iso-lbl" x={pt(0, fh / 2, 0)[0] - 6} y={pt(0, fh / 2, 0)[1]} textAnchor="end">Hf = {Hf} m</text>
-      </svg>
-    </figure>
-  );
-}
-
-// Sketsa 3D pipe support: kolom pipa vertikal + beam pipa horizontal (bentuk T).
-export function Iso3DPipe({ Do, L, Htot, title = 'Sketsa 3D isometrik' }) {
-  const o = { x: 120, y: 196 }, cw = 24, cd = 24, ch = 96, bw = 150, bd = 22, bh = 22;
-  const pt = (x, y, z) => isoPt(x, y, z, o);
-  const cx0 = bw / 2 - cw / 2;
-  return (
-    <figure className="fd">
-      <figcaption>{title}</figcaption>
-      <svg className="draw iso" viewBox="0 0 320 250" role="img" aria-label={title}>
-        {/* garis tanah */}
-        <line className="iso-grade" x1={pt(-20, 0, cd + 20)[0]} y1={pt(-20, 0, cd + 20)[1]} x2={pt(bw + 20, 0, cd + 20)[0]} y2={pt(bw + 20, 0, cd + 20)[1]} />
-        <IsoBox o={o} x={cx0} y={0} z={cd / 2} w={cw} h={ch} d={cd} cls="steel" />
-        <IsoBox o={o} x={0} y={ch} z={cd / 2 + cd / 2 - bd / 2} w={bw} h={bh} d={bd} cls="steel" />
-        <text className="iso-lbl" x={pt(bw / 2, ch + bh, cd)[0]} y={pt(bw / 2, ch + bh, cd)[1] - 6} textAnchor="middle">beam L = {L} m</text>
-        <text className="iso-lbl" x={pt(cx0, ch / 2, cd / 2)[0] - 8} y={pt(cx0, ch / 2, cd / 2)[1]} textAnchor="end">H = {Htot} m</text>
-        <text className="iso-lbl" x={pt(cx0 + cw / 2, 0, cd)[0]} y={pt(cx0 + cw / 2, 0, cd)[1] + 14} textAnchor="middle">Ø{Do} mm</text>
-      </svg>
-    </figure>
   );
 }
 

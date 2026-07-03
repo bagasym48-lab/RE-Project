@@ -476,15 +476,15 @@ table.items-tbl .it-k { width: 55%; color: #223; background: #f4f8fc; }
 table.items-tbl .it-v { color: #111; font-variant-numeric: tabular-nums; font-weight: 600; }
 table.items-tbl tr { break-inside: avoid; }
 
-/* ---- Sketsa 3D isometrik ---- */
-svg.iso .iso-front { fill: #cfc7b8; stroke: #6b6357; stroke-width: 1; stroke-linejoin: round; }
-svg.iso .iso-right { fill: #b3aa98; stroke: #6b6357; stroke-width: 1; stroke-linejoin: round; }
-svg.iso .iso-top { fill: #e7e2d8; stroke: #6b6357; stroke-width: 1; stroke-linejoin: round; }
-svg.iso .ped .iso-front, svg.iso .conc .iso-front { fill: #cfc7b8; }
-svg.iso .steel .iso-front { fill: #a9b7c6; } svg.iso .steel .iso-right { fill: #8ea0b3; } svg.iso .steel .iso-top { fill: #cdd8e5; }
-svg.iso .ped .iso-front { fill: #c3b7a2; } svg.iso .ped .iso-right { fill: #a89c85; } svg.iso .ped .iso-top { fill: #ddd3ba; }
-svg.iso .iso-grade { stroke: #9aa7b4; stroke-width: 1; stroke-dasharray: 4 3; }
-svg.iso .iso-lbl { font-size: 8.5px; font-weight: 700; fill: #0b2440; }
+/* ---- Daftar isi (halaman TOC) ---- */
+.rpt-toc { break-after: page; page-break-after: always; padding: 2mm 1mm; }
+.rpt-toc .cov-banner { font-size: 18px; margin-bottom: 16px; }
+ol.toc-list { list-style: none; margin: 0; padding: 0; counter-reset: none; }
+ol.toc-list > li { margin: 0 0 8px; }
+ol.toc-list .toc-main { font-size: 12px; font-weight: 800; color: #0b2440; display: block;
+  border-bottom: 1px dotted #c4d2e0; padding-bottom: 3px; }
+ul.toc-sub { list-style: none; margin: 4px 0 0; padding: 0 0 0 18px; }
+ul.toc-sub li { font-size: 10.5px; color: #445; padding: 2px 0; }
 
 /* ============================================================
    Dashboard shell (sidebar disiplin + main) + animasi

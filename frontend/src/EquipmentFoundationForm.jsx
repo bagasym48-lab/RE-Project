@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
 import EquipmentFoundationSketch from './EquipmentFoundationSketch.jsx';
 import { compute, def } from './equipmentFoundationCalc.js';
-import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, defProject, ItemsTable, Iso3DEquipment } from './reportKit.jsx';
+import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
 
 const LABELS = {
   rasio_berat: 'Rasio berat fondasi ≥ 5× mesin (kN)',
@@ -171,6 +171,16 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
     <div className="report-sheet">
       <FDDefs />
       <ReportCover title="Kalkulasi Pondasi Equipment" project={project} engineer={engineerName} qc={qcName} />
+      <ReportTOC items={[
+        ['1. Umum', ['1.1 Kode & Standar', '1.2 Material & Berat Satuan', '1.3 Kondisi Tanah & Faktor Keamanan']],
+        ['2. Data Input', []],
+        ['3. Gambar Sketsa', []],
+        ['4. Kombinasi Beban', ['4.1 Definisi Beban', '4.2 Kombinasi Beban Servis (LC 301–313)']],
+        ['5. Data Fondasi', ['5.1 Data Footing & Penampang', '5.2 Data Equipment']],
+        ['6. Analisis Beban & Cek Stabilitas', ['Beban angin & gempa', 'Daya dukung, geser, guling, buoyancy']],
+        ['7. Desain Fondasi & Penurunan', ['Lentur & tulangan', 'Penurunan', 'Anchor bolt']],
+        ['8. Rekapitulasi Pengecekan', []],
+      ]} />
       <header className="rpt-head">
         <div className="rpt-brand">
           <LogoMark size={48} />
@@ -215,7 +225,28 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
           ['SF geser / guling / buoyancy', '1.5 / 2.0 / 1.5'],
           [<>Koef. gesek dasar μ</>, `${f(s.mu_fric)}`],
         ]} />
-        <h3>1.4 Kombinasi Beban</h3>
+      </section>
+
+      <section className="rpt-section">
+        <h2>2. Data Input</h2>
+        {GROUPS.map(([title, fields]) => (
+          <div key={title}>
+            <h3>{title}</h3>
+            <div className="rpt-kv">
+              {fields.map(([k, l]) => <div key={k} className="rpt-kv-item"><span>{l}</span><b>{s[k] === '' ? '—' : s[k]}</b></div>)}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="rpt-section">
+        <h2>3. Gambar Sketsa</h2>
+        <div className="rpt-sketch"><EquipmentFoundationSketch s={s} /></div>
+      </section>
+
+      <section className="rpt-section">
+        <h2>4. Kombinasi Beban</h2>
+        <h3>4.1 Definisi Beban</h3>
         <ItemsTable head={['Notasi', 'Deskripsi beban']} rows={[
           ['D', 'Beban mati — berat blok fondasi'],
           ['EE / EO / ET', `Berat equipment kosong / operasi / test = ${f(s.EE)} / ${f(s.EO)} / ${f(s.ET)} kN`],
@@ -223,40 +254,8 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
           ['V', 'Beban gempa (SNI 1726:2019, Cs + 0.14·SDS vertikal)'],
           ['IL', `Impact load = 1.2·EO = ${f(i.IL)} kN`],
         ]} />
-        <p className="rpt-note2">Terdapat 13 kombinasi beban servis (LC 301–313: D/EE/EO/ET dikombinasi angin 0.6W/0.45W &amp; gempa 0.91Vx+0.27Vz) — rincian pada §3.3.</p>
-      </section>
-
-      <section className="rpt-section">
-        <h2>2. Gambar</h2>
-        <h3>2.1 Sketsa Detail Fondasi (2D &amp; 3D)</h3>
-        <div className="rpt-sketch"><EquipmentFoundationSketch s={s} /></div>
-        <div className="fd-row"><Iso3DEquipment Lf={s.Lf} Bf={s.Bf} Hf={s.Hf} /></div>
-      </section>
-
-      <section className="rpt-section">
-        <h2>3. Data Fondasi &amp; Beban</h2>
-        <h3>3.1 Data Footing &amp; Penampang</h3>
-        <ItemsTable rows={[
-          [<>Panjang fondasi L<sub>f</sub></>, `${f(s.Lf)} m`],
-          [<>Lebar fondasi B<sub>f</sub></>, `${f(s.Bf)} m`],
-          [<>Tinggi fondasi H<sub>f</sub></>, `${f(s.Hf)} m`],
-          [<>Tinggi di atas / tertanam H<sub>fa</sub> / H<sub>fb</sub></>, `${f(s.Hfa)} / ${f(i.Hfb)} m`],
-          [<>Luas dasar A<sub>f</sub></>, `${f(i.Af, 3)} m²`],
-          [<>Modulus penampang S<sub>x</sub> / S<sub>z</sub></>, `${f(i.Sx, 3)} / ${f(i.Sz, 3)} m³`],
-          [<>Berat fondasi W<sub>f</sub></>, `${f(i.Wf)} kN`],
-        ]} />
-        <h3>3.2 Data Equipment (tanpa pedestal)</h3>
-        <ItemsTable rows={[
-          [<>Dimensi L<sub>eq</sub> / B<sub>eq</sub> / H<sub>eq</sub></>, `${f(s.Leq)} / ${f(s.Beq)} / ${f(s.Heq)} m`],
-          ['Berat EE / EO / ET', `${f(s.EE)} / ${f(s.EO)} / ${f(s.ET)} kN`],
-          [<>Rasio berat W<sub>f</sub>/EO (syarat ≥ 5)</>, `${f(i.ratioW)}`],
-          ['Anchor bolt', `${f(s.n_bolt, 0)} baut Ø${f(s.d_bolt, 0)} mm, tanam ${f(s.h_anchor, 0)} mm`],
-        ]} />
-        <h3>3.3 Load Case &amp; Kombinasi Beban</h3>
-        <p className="rpt-terz">
-          Angin: q<sub>h</sub> = {f2(i.qh)} N/m² → H<sub>wx</sub>/H<sub>wz</sub> = {f2(i.Hwx)}/{f2(i.Hwz)} kN ·
-          Gempa: Cs = {f2(i.Cs)} → V<sub>EO</sub> = {f2(i.Vh.EO)} kN, V<sub>y,EO</sub> = {f2(i.Vy.EO)} kN (rincian §4)
-        </p>
+        <h3>4.2 Kombinasi Beban Servis (LC 301–313) &amp; Tegangan Kontak</h3>
+        <p className="rpt-note2">13 kombinasi: D/EE/EO/ET dikombinasi angin 0.6W/0.45W &amp; gempa 0.91Vx+0.27Vz + 0.14·SDS vertikal. σmax/σmin dihitung per LC.</p>
         <table className="rpt-table rpt-checks">
           <thead><tr><th>LC</th><th>Kombinasi</th><th>Fx</th><th>Fy</th><th>Fz</th><th>Mx</th><th>Mz</th><th>σmax</th><th>σmin</th></tr></thead>
           <tbody>
@@ -273,16 +272,37 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
       </section>
 
       <section className="rpt-section">
-        <h2>4. Analisis Beban &amp; Cek Stabilitas</h2>
+        <h2>5. Data Fondasi</h2>
+        <h3>5.1 Data Footing &amp; Penampang</h3>
+        <ItemsTable rows={[
+          [<>Panjang fondasi L<sub>f</sub></>, `${f(s.Lf)} m`],
+          [<>Lebar fondasi B<sub>f</sub></>, `${f(s.Bf)} m`],
+          [<>Tinggi fondasi H<sub>f</sub></>, `${f(s.Hf)} m`],
+          [<>Tinggi di atas / tertanam H<sub>fa</sub> / H<sub>fb</sub></>, `${f(s.Hfa)} / ${f(i.Hfb)} m`],
+          [<>Luas dasar A<sub>f</sub></>, `${f(i.Af, 3)} m²`],
+          [<>Modulus penampang S<sub>x</sub> / S<sub>z</sub></>, `${f(i.Sx, 3)} / ${f(i.Sz, 3)} m³`],
+          [<>Berat fondasi W<sub>f</sub></>, `${f(i.Wf)} kN`],
+        ]} />
+        <h3>5.2 Data Equipment (tanpa pedestal)</h3>
+        <ItemsTable rows={[
+          [<>Dimensi L<sub>eq</sub> / B<sub>eq</sub> / H<sub>eq</sub></>, `${f(s.Leq)} / ${f(s.Beq)} / ${f(s.Heq)} m`],
+          ['Berat EE / EO / ET', `${f(s.EE)} / ${f(s.EO)} / ${f(s.ET)} kN`],
+          [<>Rasio berat W<sub>f</sub>/EO (syarat ≥ 5)</>, `${f(i.ratioW)}`],
+          ['Anchor bolt', `${f(s.n_bolt, 0)} baut Ø${f(s.d_bolt, 0)} mm, tanam ${f(s.h_anchor, 0)} mm`],
+        ]} />
+      </section>
 
-        <DerivGroup title="4.1 Berat fondasi & rasio (analisis dinamik diabaikan)" refs="RTS PHR-SP-CI-GG-002 · Arya (1979)">
+      <section className="rpt-section">
+        <h2>6. Analisis Beban &amp; Cek Stabilitas</h2>
+
+        <DerivGroup title="Berat fondasi & rasio (analisis dinamik diabaikan)" refs="RTS PHR-SP-CI-GG-002 · Arya (1979)">
           <Step desc="Berat blok fondasi" expr={<>W<sub>f</sub> = γ<sub>c</sub>·A<sub>f</sub>·H<sub>f</sub></>}
             sub={<>{f(s.gc)}·{f(i.Af, 3)}·{f(s.Hf)}</>} val={f(i.Wf)} unit="kN" />
           <Step desc="Rasio berat fondasi terhadap mesin (syarat ≥ 5)"
             expr={<>W<sub>f</sub> / EO</>} sub={<>{f(i.Wf)} / {f(s.EO)}</>} val={f(i.ratioW)} ok={r.checks.rasio_berat.ok} />
         </DerivGroup>
 
-        <DerivGroup title="4.2 Daya dukung tanah (Meyerhof)" refs="Meyerhof (1963)">
+        <DerivGroup title="Daya dukung tanah (Meyerhof)" refs="Meyerhof (1963)">
           <Step desc="Faktor kapasitas dukung" expr={<>N<sub>q</sub> = tan²(45+ϕ/2)·e^(π·tanϕ)</>} val={f(i.tz.Nq)} />
           <Step expr={<>N<sub>c</sub> = (N<sub>q</sub>−1)·cotϕ · ; · N<sub>γ</sub> = 2(N<sub>q</sub>+1)·tanϕ</>}
             sub={<>N<sub>c</sub> = {f(i.tz.Nc)} ; N<sub>γ</sub> = {f(i.tz.Ng)}</>} />
@@ -294,7 +314,7 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
             val={f(i.qall)} unit="kN/m²" />
         </DerivGroup>
 
-        <DerivGroup title="4.3 Beban angin" refs="SNI 1727:2020 · ASCE 7-16">
+        <DerivGroup title="Beban angin" refs="SNI 1727:2020 · ASCE 7-16">
           <Step desc="Tekanan kecepatan (≥ 770 N/m²)" refs="SNI 1727:2020 Pers. 26.10-1"
             expr={<>q<sub>h</sub> = 0.613·K<sub>z</sub>·K<sub>zt</sub>·K<sub>d</sub>·K<sub>e</sub>·V²</>}
             sub={<>{f(i.qh0)} → max({f(i.qh0)} ; {f(s.qh_min)})</>} val={f(i.qh)} unit="N/m²" />
@@ -303,7 +323,7 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
             sub={<>A<sub>wx</sub>={f(i.Awx, 3)} ; A<sub>wz</sub>={f(i.Awz, 3)} m²</>} val={`${f(i.Hwx)} / ${f(i.Hwz)}`} unit="kN" />
         </DerivGroup>
 
-        <DerivGroup title="4.4 Beban gempa" refs="SNI 1726:2019">
+        <DerivGroup title="Beban gempa" refs="SNI 1726:2019">
           <Step desc="Koefisien seismik" refs="SNI 1726:2019 Ps. 7.8.1.1"
             expr={<>C<sub>s</sub> = S<sub>DS</sub>·I<sub>e</sub>/R ≥ C<sub>s,min</sub></>}
             sub={<>{f(s.SDS)}·{f(s.Ie)}/{f(s.R)} = {f(i.Cs, 3)} ; min {f(i.CsMin, 3)}</>} val={f(i.Cs, 3)} />
@@ -312,7 +332,7 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
             sub={<>V = {f(i.Vh.EO)} ; V<sub>y</sub> = {f(i.Vy.EO)}</>} unit="kN" />
         </DerivGroup>
 
-        <DerivGroup title="4.5 Tegangan kontak tanah" refs={`governing ${r.checks.daya_dukung.lc}`}>
+        <DerivGroup title="Tegangan kontak tanah" refs={`governing ${r.checks.daya_dukung.lc}`}>
           <Step desc="Tegangan maksimum di dasar fondasi"
             expr={<>σ<sub>max</sub> = <Frac n={<>F<sub>y</sub></>} d={<>A<sub>f</sub></>} /> + <Frac n={<>|M<sub>x</sub>|</>} d={<>S<sub>x</sub></>} /> + <Frac n={<>|M<sub>z</sub>|</>} d={<>S<sub>z</sub></>} /></>}
             sub={<><Frac n={f(govBC.Fy)} d={f(i.Af, 3)} /> + <Frac n={f(Math.abs(nz(govBC.Mx)))} d={f(i.Sx, 3)} /> + <Frac n={f(Math.abs(nz(govBC.Mz)))} d={f(i.Sz, 3)} /></>}
@@ -321,7 +341,7 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
             val={f(r.checks.daya_dukung.smin)} unit="kN/m²" ok={r.checks.daya_dukung.smin >= 0} />
         </DerivGroup>
 
-        <DerivGroup title="4.6 Stabilitas geser, guling & buoyancy">
+        <DerivGroup title="Stabilitas geser, guling & buoyancy">
           <Step desc="Geser (SF ≥ 1.5)" refs="μ=0.5 SNI 1726:2019 Ps. 7.13.8"
             expr={<>SF = F<sub>y</sub>·μ / H</>} val={f(r.checks.stab_geser.SF)} ok={r.checks.stab_geser.ok} />
           <Step desc="Guling (SF ≥ 2)" expr={<>SF = M<sub>r</sub> / M<sub>guling</sub> = F<sub>y</sub>·0.5·L / M</>}
@@ -336,9 +356,9 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
       </section>
 
       <section className="rpt-section">
-        <h2>5. Desain Fondasi &amp; Penurunan</h2>
+        <h2>7. Desain Fondasi &amp; Penurunan</h2>
 
-        <DerivGroup title="5.1 Penurunan (Braja Das)" refs="Steinbrenner · Braja M. Das (1988)">
+        <DerivGroup title="Penurunan (Braja Das)" refs="Steinbrenner · Braja M. Das (1988)">
           <Step desc="Penurunan segera" expr={<>S<sub>i</sub> = q<sub>0</sub>·B·<Frac n="(1−μ²)" d={<>E<sub>s</sub></>} />·I<sub>s</sub>·I<sub>f</sub>·4</>}
             sub={<>I<sub>s</sub> = I₁+<Frac n="(1−2μ)" d="(1−μ)" />·I₂ = {f(i.Is, 3)}</>} val={f(i.Si)} unit="mm" />
           <Step desc={`Konsolidasi (${i.isOC ? 'OC → Cs' : 'NC → Cc'})`} expr={<>S<sub>c</sub> = <Frac n="C·H" d="1+e₀" />·log<Frac n="P₀'+ΔP" d="P₀'" /></>}
@@ -347,7 +367,7 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
             sub={<>{f(i.Si)}+{f(i.Sc1)}+{f(i.Sc2)}</>} val={f(i.Stot)} unit="mm" ok={r.checks.penurunan.ok} />
         </DerivGroup>
 
-        <DerivGroup title="5.2 Lentur footing & tulangan" refs="SNI 2847:2019">
+        <DerivGroup title="Lentur footing & tulangan" refs="SNI 2847:2019">
           <Step desc="Beban garis ultimit & tinggi efektif"
             expr={<>q<sub>u,f</sub> = 1.4·q<sub>all</sub> ; d = H<sub>f</sub>−c−0.5·D<sub>rl</sub></>}
             sub={<>q<sub>u,f</sub>={f(i.qu_f)} kN/m ; d={f(i.d_eff)} mm</>} />
@@ -361,7 +381,7 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
             sub={<>{f(i.As_min, 0)} vs A<sub>s</sub> {f(i.As, 0)} mm²</>} ok={r.checks.tulangan_min.ok} />
         </DerivGroup>
 
-        <DerivGroup title="5.3 Anchor bolt (4 baut sudut)" refs="ACI 318-14 Bab 17">
+        <DerivGroup title="Anchor bolt (4 baut sudut)" refs="ACI 318-14 Bab 17">
           <Step desc="Luas efektif baut" expr={<>A<sub>se</sub> = π/4·(d<sub>o</sub>−0.9743/n<sub>t</sub>)²</>} val={f(i.Ase)} unit="mm²" />
           <Step desc="Kapasitas tarik (min baja/breakout/pullout/blow-out)" refs="ACI 318-14 17.4"
             expr={<>ϕN<sub>n</sub> = 0.7·min(N<sub>sa</sub>,N<sub>cb</sub>,N<sub>pn</sub>,N<sub>sb</sub>)</>}
@@ -384,7 +404,7 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
       </section>
 
       <section className="rpt-section">
-        <h2>6. Rekapitulasi Pengecekan</h2>
+        <h2>8. Rekapitulasi Pengecekan</h2>
         <table className="rpt-table rpt-checks">
           <thead><tr><th>Pengecekan</th><th>Demand</th><th>Kapasitas</th><th>Rasio</th><th>Status</th></tr></thead>
           <tbody>

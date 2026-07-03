@@ -186,17 +186,19 @@ The cover has `break-after: page` so the report body starts on page 2. Project i
 (controlled with a local fallback). Fill it once; it appears on whichever report you print.
 `defProject` + `ProjectInfoForm` + `ReportCover` are exported from `reportKit.jsx`.
 
-**Reports follow a structured AFES-style document layout** (modelled on `DUMY AFES.pdf`). After
-the cover, every report is numbered **1. Umum** (Kode & Standar, Material & Berat Satuan, Kondisi
-Tanah & Faktor Keamanan, Kombinasi Beban — rendered as `ItemsTable` "Item | Nilai" tables),
-**2. Gambar** (2D detail sketch + an **isometric 3D sketch**), **3. Data Fondasi/Struktur** (dimension
-`ItemsTable`s + load-case table), **4. Cek Stabilitas/Kapasitas**, **5. Desain & Penurunan**, and
-**6. Rekapitulasi**. Sub-sections use `x.y` numbering; the derivation `DerivGroup`s (formerly labelled
-A–I) are distributed across §4/§5. Shared building blocks in `reportKit.jsx`: `ItemsTable`
-(navy-header two-column table) and `Iso3DFooting` / `Iso3DEquipment` / `Iso3DPipe` (isometric SVG via
-an `IsoBox` helper — `x`=width, `z`=depth, `y`=height; three visible faces shaded top/front/right).
-Styles: `.items-tbl`, `svg.iso .iso-*` in `index.css`. Keep the SFD/BMD force diagrams inside §4/§5
-near the checks they illustrate.
+**Reports follow a structured AFES-style document layout** (modelled on `DUMY AFES.pdf`). The
+sequence is **Cover** (`ReportCover`, `break-after: page`) → **Daftar Isi** (`ReportTOC`, its own
+page; `items` = `[[main, [subs…]], …]`) → the numbered body: **1. Umum** (Kode & Standar, Material &
+Berat Satuan, Kondisi Tanah & Faktor Keamanan — `ItemsTable` "Item | Nilai" tables), **2. Data Input**
+(the raw input listing as `rpt-kv`), **3. Gambar Sketsa** (2D detail sketch only — no 3D), **4.
+Kombinasi Beban** (load definitions + load-case/combination table), **5. Data Fondasi/Struktur**
+(dimension `ItemsTable`s), **6. Cek Stabilitas/Kapasitas**, **7. Desain & Penurunan**, and **8.
+Rekapitulasi**. Only main sections carry numbers; the derivation `DerivGroup`s inside §6/§7 use
+**descriptive titles** (no `x.y` prefix) so sections can be renumbered without touching them (a `sed`
+stripped the old numbers). Shared building blocks in `reportKit.jsx`: `ItemsTable` (navy-header
+two-column table), `ReportTOC`. Styles: `.items-tbl`, `.rpt-toc`/`.toc-*` in `index.css`. (An earlier
+isometric-3D-sketch experiment — `Iso3D*` + `svg.iso` CSS — was removed at the user's request.) Keep
+the SFD/BMD force diagrams inside §6/§7 near the checks they illustrate.
 
 **Print reports show full derivations** (`frontend/src/reportKit.jsx`, shared by all three
 calculators). Every `report-sheet` has a **"Rincian perhitungan"** section built from `<Step>`
