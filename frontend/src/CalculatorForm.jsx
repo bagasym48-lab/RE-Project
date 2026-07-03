@@ -9,7 +9,7 @@ import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDia
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const defaultFoundation = {
+export const defaultFoundation = {
   n_pedestal: 1, alphas: 20, fc: 28, fy: 420,
   B: 1500, L: 1500, h: 300, Df: 500,
   c1: 400, c2: 400, Hp: 700, s_ped: 700, cover: 75,

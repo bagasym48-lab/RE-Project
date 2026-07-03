@@ -206,7 +206,126 @@ function MtoPipe() {
   );
 }
 
-export default function MtoPage() {
+// ============================================================
+// MTO Pondasi Equipment — dimensi tersinkron dari kalkulasi (prop `equip`)
+// ============================================================
+const defMtoEquip = {
+  lapis: 2, tLc: 0.05, wasteBesi: 5, projBolt: 150,
+  hBeton: 1200000, hBesi: 15000, hLc: 900000, hAngkur: 30000,
+};
+
+// Field read-only untuk nilai yang datang dari kalkulasi (tidak bisa diedit di MTO).
+function LinkedField({ label, value }) {
+  return (
+    <label className="field linked" title={`${label} — otomatis dari kalkulasi`}>
+      <span>{label}</span>
+      <input type="text" value={value} readOnly tabIndex={-1} />
+    </label>
+  );
+}
+
+function MtoEquipment({ equip }) {
+  const [v, setV] = useState(defMtoEquip);
+  const upd = (k) => (val) => setV((s) => ({ ...s, [k]: val }));
+  const g = (k) => num(v[k]);
+  const e = equip || {};
+  const eg = (k) => num(e[k]);
+
+  // Geometri dari kalkulasi — Lf/Bf/Hf dalam meter; cover/Drl/srl/d_bolt/h_anchor mm
+  const Lf = eg('Lf'), Bf = eg('Bf'), Hf = eg('Hf');
+  const cover = eg('cover'), Drl = eg('Drl'), srl = Math.max(eg('srl'), 1);
+  const nBolt = Math.max(0, Math.round(eg('n_bolt'))), dBolt = eg('d_bolt'), hAnchor = eg('h_anchor');
+
+  // Volume beton (blok tanpa pedestal) + lantai kerja
+  const volBeton = Lf * Bf * Hf;               // m³
+  const volLc = Lf * Bf * g('tLc');            // m³
+
+  // Tulangan jaring 2 arah
+  const LfMm = Lf * 1000, BfMm = Bf * 1000;
+  const nX = Math.floor(BfMm / srl) + 1;       // batang arah Lf (tersebar sepanjang Bf)
+  const nZ = Math.floor(LfMm / srl) + 1;       // batang arah Bf (tersebar sepanjang Lf)
+  const lenX = Math.max(LfMm - 2 * cover, 0) / 1000;
+  const lenZ = Math.max(BfMm - 2 * cover, 0) / 1000;
+  const lapis = Math.max(g('lapis'), 1);
+  const totLenRebar = (nX * lenX + nZ * lenZ) * lapis;                       // m
+  const beratBesi = totLenRebar * kgmRebar(Drl) * (1 + g('wasteBesi') / 100); // kg
+
+  // Anchor bolt (baja 7850 kg/m³)
+  const lenBolt = hAnchor + g('projBolt');                                    // mm
+  const beratBoltUnit = (Math.PI / 4) * dBolt * dBolt * lenBolt * 7.85e-6;    // kg/baut
+  const beratAngkur = nBolt * beratBoltUnit;
+
+  const hargaBeton = volBeton * g('hBeton');
+  const hargaLc = volLc * g('hLc');
+  const hargaBesi = beratBesi * g('hBesi');
+  const hargaAngkur = beratAngkur * g('hAngkur');
+  const total = hargaBeton + hargaLc + hargaBesi + hargaAngkur;
+
+  return (
+    <div className="layout">
+      <section className="inputs">
+        <p className="mto-link-note">🔗 Dimensi tersinkron dengan <b>Kalkulasi Pondasi Equipment</b>. Ubah dimensi di kalkulasi → MTO ikut berubah otomatis.</p>
+
+        <fieldset className="group">
+          <legend>Dimensi (dari kalkulasi · read-only)</legend>
+          <div className="fields">
+            <LinkedField label="Lf — panjang fondasi (m)" value={Lf} />
+            <LinkedField label="Bf — lebar fondasi (m)" value={Bf} />
+            <LinkedField label="Hf — tinggi fondasi (m)" value={Hf} />
+            <LinkedField label="selimut beton (mm)" value={cover} />
+            <LinkedField label="Ø tulangan (mm)" value={Drl} />
+            <LinkedField label="spasi tulangan (mm)" value={srl} />
+            <LinkedField label="jumlah anchor bolt" value={nBolt} />
+            <LinkedField label="Ø anchor bolt (mm)" value={dBolt} />
+            <LinkedField label="kedalaman anchor (mm)" value={hAnchor} />
+          </div>
+        </fieldset>
+
+        <fieldset className="group">
+          <legend>Parameter MTO</legend>
+          <div className="fields">
+            <NumField label="lapis tulangan (1=bawah, 2=atas+bawah)" value={v.lapis} onChange={upd('lapis')} step="1" />
+            <NumField label="tebal lantai kerja (m)" value={v.tLc} onChange={upd('tLc')} />
+            <NumField label="waste besi (%)" value={v.wasteBesi} onChange={upd('wasteBesi')} />
+            <NumField label="proyeksi baut di atas beton (mm)" value={v.projBolt} onChange={upd('projBolt')} />
+          </div>
+        </fieldset>
+
+        <fieldset className="group">
+          <legend>Harga satuan</legend>
+          <div className="fields">
+            <NumField label="harga beton (Rp/m³)" value={v.hBeton} onChange={upd('hBeton')} />
+            <NumField label="harga besi (Rp/kg)" value={v.hBesi} onChange={upd('hBesi')} />
+            <NumField label="harga lantai kerja (Rp/m³)" value={v.hLc} onChange={upd('hLc')} />
+            <NumField label="harga anchor bolt (Rp/kg)" value={v.hAngkur} onChange={upd('hAngkur')} />
+          </div>
+        </fieldset>
+      </section>
+
+      <aside className="side">
+        <div className="card">
+          <h2>Hasil MTO — Pondasi Equipment</h2>
+          <table className="res mto-res">
+            <tbody>
+              <tr><td>Volume beton struktural ({Lf}×{Bf}×{Hf} m)</td><td className="num">{volBeton.toFixed(3)} m³</td></tr>
+              <tr><td>Volume lantai kerja</td><td className="num">{volLc.toFixed(3)} m³</td></tr>
+              <tr><td>Besi jaring ({nX}+{nZ} batang × {lapis} lapis)</td><td className="num">{beratBesi.toFixed(1)} kg</td></tr>
+              <tr><td>Anchor bolt ({nBolt} × {beratBoltUnit.toFixed(2)} kg)</td><td className="num">{beratAngkur.toFixed(1)} kg</td></tr>
+              <tr><td>Harga beton</td><td className="num">{rupiah(hargaBeton)}</td></tr>
+              <tr><td>Harga lantai kerja</td><td className="num">{rupiah(hargaLc)}</td></tr>
+              <tr><td>Harga besi</td><td className="num">{rupiah(hargaBesi)}</td></tr>
+              <tr><td>Harga anchor bolt</td><td className="num">{rupiah(hargaAngkur)}</td></tr>
+              <tr className="total"><td>TOTAL</td><td className="num">{rupiah(total)}</td></tr>
+            </tbody>
+          </table>
+          <p className="muted-note">Estimasi beton + tulangan + anchor bolt. Belum termasuk bekisting, grouting, upah, dll. Wajib diverifikasi.</p>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+export default function MtoPage({ equip }) {
   const [sub, setSub] = useState('pondasi');
   return (
     <div className="app">
@@ -216,9 +335,12 @@ export default function MtoPage() {
       </header>
       <div className="mto-subtabs">
         <button className={sub === 'pondasi' ? 'active' : ''} onClick={() => setSub('pondasi')}>MTO Pondasi Dangkal</button>
+        <button className={sub === 'equipment' ? 'active' : ''} onClick={() => setSub('equipment')}>MTO Pondasi Equipment</button>
         <button className={sub === 'pipe' ? 'active' : ''} onClick={() => setSub('pipe')}>MTO Pipe Support</button>
       </div>
-      {sub === 'pondasi' ? <MtoPondasi /> : <MtoPipe />}
+      {sub === 'pondasi' && <MtoPondasi />}
+      {sub === 'equipment' && <MtoEquipment equip={equip} />}
+      {sub === 'pipe' && <MtoPipe />}
     </div>
   );
 }

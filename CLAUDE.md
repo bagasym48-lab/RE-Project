@@ -189,10 +189,21 @@ stay display-only; never let them drive verdicts. `reportKit` styles + print rul
 
 ### MTO (`frontend/src/MtoPage.jsx`)
 A third top-nav tab (after Kalkulator/Progress) for **Material Take-Off** — pure-frontend
-calculators (no backend/DB). Two sub-tabs: **Pondasi Dangkal** (concrete volume + rebar weight
-from dims/reinforcement → cost) and **Pipe Support** (steel-pipe table by type/length/qty →
-weight → cost). Rebar weight `0.006165·d²` kg/m; pipe weights are a Sch-40 `kg/m` catalog.
-Educational estimate — excludes formwork/labour/fittings.
+calculators (no backend/DB). Three sub-tabs: **Pondasi Dangkal** (concrete volume + rebar weight
+from dims/reinforcement → cost), **Pondasi Equipment** (`MtoEquipment` — block concrete +
+lean-concrete + two-way mesh rebar + anchor-bolt steel weight → cost), and **Pipe Support**
+(steel-pipe table by type/length/qty → weight → cost). Rebar weight `0.006165·d²` kg/m; pipe
+weights are a Sch-40 `kg/m` catalog. Educational estimate — excludes formwork/labour/fittings.
+
+**Equipment MTO is linked to the equipment calculator.** The `EquipmentFoundationForm` input
+state is **lifted to `CivilView`** (`equip`/`setEquip`, persisted to `localStorage` key
+`equipFoundationInput`) and passed to **both** `KalkulatorView`→`EquipmentFoundationForm`
+(`s`/`setS` props — the form is now controlled, with a local-state fallback so it still runs
+standalone) **and** `MtoPage`→`MtoEquipment`. So editing dimensions in the calculator flows
+straight into the MTO (`MtoEquipment` shows the geometry as read-only `LinkedField`s; only
+MTO-specific params — layers, lean-concrete thickness, waste %, unit prices — are editable there).
+CivilView stays mounted across tool switches, so the shared state persists. If you add another
+linked calc↔MTO pair, follow the same lift-to-CivilView pattern rather than duplicating inputs.
 
 ## Environment
 Backend `.env` (in `backend/`): `CORS_ORIGINS`. Frontend `.env` (in the Vite project root):

@@ -70,8 +70,12 @@ function Field({ k, label, value, onChange }) {
   );
 }
 
-export default function EquipmentFoundationForm() {
-  const [s, setS] = useState(def);
+export default function EquipmentFoundationForm({ s: sProp, setS: setSProp }) {
+  // State bisa "diangkat" ke induk (CivilView) agar tersinkron dengan MTO; fallback
+  // ke state lokal bila dipakai berdiri sendiri.
+  const [sLocal, setSLocal] = useState(def);
+  const s = sProp ?? sLocal;
+  const setS = setSProp ?? setSLocal;
   const [engineerName, setEngineerName] = useState('');
   const [qcName, setQcName] = useState('');
   const upd = (k, v) => setS((o) => ({ ...o, [k]: v }));

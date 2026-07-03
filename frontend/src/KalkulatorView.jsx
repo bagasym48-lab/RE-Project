@@ -11,7 +11,7 @@ const SUBS = [
   { id: 'pipe', label: 'Pipe Support' },
 ];
 
-export default function KalkulatorView({ userId, profile, userEmail }) {
+export default function KalkulatorView({ userId, profile, userEmail, equip, setEquip }) {
   const [sub, setSub] = useState('pondasi');
   return (
     <div className="kalk">
@@ -21,7 +21,7 @@ export default function KalkulatorView({ userId, profile, userEmail }) {
         ))}
       </div>
       {sub === 'pondasi' && <CalculatorForm userId={userId} profile={profile} userEmail={userEmail} />}
-      {sub === 'equipment' && <EquipmentFoundationForm />}
+      {sub === 'equipment' && <EquipmentFoundationForm s={equip} setS={setEquip} />}
       {sub === 'pipe' && <PipeSupportForm />}
     </div>
   );
