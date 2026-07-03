@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
 import PipeSupportSketch from './PipeSupportSketch.jsx';
+import { Step, DerivGroup, Frac, FDDefs, ColumnForceDiagram, BeamForceDiagram, f } from './reportKit.jsx';
 
 const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const PI = Math.PI;
@@ -121,8 +122,10 @@ function compute(s) {
   const overall_ok = Object.values(checks).every((c) => c.ok);
 
   return {
-    info: { Htot, qh, Pwind, Puse, Fwind, Cs, CsUse, Fseis, A, I, Z, Pr, Mr, Hmax,
-            se1, se2, se3, Es, Iws, Qws, Qwp },
+    info: { Htot, Dm, qh, Pwind, Puse, Fwind, Cs, CsMin, CsUse, Fseis, A, I, Z, Di, EI,
+            seisAmp, Pr, Hlat, Mr, Hmax, Pc, Mc, ratioPM, Tmax, noTension,
+            dv, dvAll, dhWind, dhWindAll, dhSeis, dhSeisAll, Lmm, Hmm,
+            se1, se2, se3, se, Es, Iws, Qws, Qwp, Ap, perim: p, mu2 },
     checks, overall_ok,
   };
 }
@@ -251,8 +254,11 @@ export default function PipeSupportForm() {
 function PipeReportSheet({ s, r, engineerName, qcName }) {
   const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—');
+  const Mbeam = (n(s.P_oper) * n(s.L)) / 4;
+  const pmGE = r.info.Pc ? r.info.Pr / r.info.Pc >= 0.2 : false;
   return (
     <div className="report-sheet">
+      <FDDefs />
       <header className="rpt-head">
         <div className="rpt-brand">
           <LogoMark size={48} />
@@ -283,7 +289,99 @@ function PipeReportSheet({ s, r, engineerName, qcName }) {
       </section>
 
       <section className="rpt-section">
-        <h2>3. Hasil analisis</h2>
+        <h2>3. Rincian perhitungan</h2>
+
+        <DerivGroup title="A. Beban angin" refs="SNI 1727:2020 · ASCE 7-16">
+          <Step desc="Tekanan kecepatan angin" refs="SNI 1727:2020 Pers. 26.10-1"
+            expr={<>q<sub>h</sub> = 0.613·K<sub>z</sub>·K<sub>zt</sub>·K<sub>d</sub>·K<sub>e</sub>·V²</>}
+            sub={<>0.613·{f(s.Kz)}·{f(s.Kzt)}·{f(s.Kd)}·{f(s.Ke)}·{f(s.V)}²</>} val={f(r.info.qh)} unit="N/m²" />
+          <Step desc="Tekanan angin desain" refs="ASCE 7-16 Ps. 29.4"
+            expr={<>P = q<sub>h</sub>·G·C<sub>f</sub></>}
+            sub={<>{f(r.info.qh)}·{f(s.G)}·{f(s.Cf)} / 1000</>} val={f(r.info.Pwind)} unit="kN/m²" />
+          <Step desc="Tekanan dipakai (≥ minimum)"
+            expr={<>P<sub>use</sub> = max(P ; P<sub>min</sub>)</>}
+            sub={<>max({f(r.info.Pwind)} ; {f(s.Pmin)})</>} val={f(r.info.Puse)} unit="kN/m²" />
+          <Step desc="Gaya angin pada pipa" refs="ASCE 7-16 Pers. 29.4-1"
+            expr={<>F<sub>w</sub> = P<sub>use</sub>·D<sub>pipa</sub>·L</>}
+            sub={<>{f(r.info.Puse)}·{f(r.info.Dm, 3)}·{f(s.L)}</>} val={f(r.info.Fwind)} unit="kN" />
+        </DerivGroup>
+
+        <DerivGroup title="B. Beban gempa" refs="SNI 1726:2019">
+          <Step desc="Koefisien respons seismik" refs="SNI 1726:2019 Ps. 7.8.1.1"
+            expr={<>C<sub>s</sub> = S<sub>DS</sub>·I<sub>e</sub> / R</>}
+            sub={<>{f(s.SDS, 3)}·{f(s.Ie)} / {f(s.R)}</>} val={f(r.info.Cs, 3)} />
+          <Step desc="Batas bawah Cs" refs="SNI 1726:2019 Ps. 7.8.1.1"
+            expr={<>C<sub>s,min</sub> = max(0.044·S<sub>DS</sub>·I<sub>e</sub> ; 0.01)</>}
+            sub={<>max(0.044·{f(s.SDS, 3)}·{f(s.Ie)} ; 0.01)</>} val={f(r.info.CsMin, 3)} />
+          <Step desc="Gaya gempa lateral"
+            expr={<>F<sub>E</sub> = C<sub>s</sub>·P<sub>oper</sub></>}
+            sub={<>{f(r.info.CsUse, 3)}·{f(s.P_oper)}</>} val={f(r.info.Fseis)} unit="kN" />
+        </DerivGroup>
+
+        <DerivGroup title="C. Properti penampang pipa baja">
+          <Step desc="Luas penampang" expr={<>A = <Frac n="π" d="4" />·(D<sub>o</sub>²−D<sub>i</sub>²)</>}
+            sub={<>D<sub>i</sub> = {f(r.info.Di)} mm</>} val={f(r.info.A, 0)} unit="mm²" />
+          <Step desc="Momen inersia" expr={<>I = <Frac n="π" d="64" />·(D<sub>o</sub>⁴−D<sub>i</sub>⁴)</>} val={f(r.info.I, 0)} unit="mm⁴" />
+          <Step desc="Modulus penampang plastis" expr={<>Z = (D<sub>o</sub>³−D<sub>i</sub>³)/6</>} val={f(r.info.Z, 0)} unit="mm³" />
+        </DerivGroup>
+
+        <DerivGroup title="D. Gaya dalam (model kantilever)">
+          <Step desc="Aksial maks (amplifikasi vertikal 1+0.14·SDS)"
+            expr={<>P<sub>r</sub> = max(P<sub>oper</sub>·(1+0.14·S<sub>DS</sub>) ; P<sub>test</sub>)</>}
+            sub={<>max({f(s.P_oper)}·{f(r.info.seisAmp, 3)} ; {f(s.P_test)})</>} val={f(r.info.Pr)} unit="kN" />
+          <Step desc="Resultan gaya lateral (termal + angin)"
+            expr={<>H = √((|T<sub>x</sub>|+F<sub>w</sub>)² + T<sub>z</sub>²)</>}
+            sub={<>√(({f(Math.abs(n(s.Tx)))}+{f(r.info.Fwind)})² + {f(Math.abs(n(s.Tz)))}²)</>} val={f(r.info.Hlat)} unit="kN" />
+          <Step desc="Momen dasar kolom" refs="statika kantilever"
+            expr={<>M = H·H<sub>tot</sub></>} sub={<>{f(r.info.Hlat)}·{f(r.info.Htot)}</>} val={f(r.info.Mr)} unit="kNm" />
+        </DerivGroup>
+
+        <DerivGroup title="E. Rasio interaksi struktur" refs="AISC 360-16 Bab H1">
+          <Step desc="Kapasitas aksial leleh" expr={<>P<sub>c</sub> = 0.9·f<sub>y</sub>·A</>}
+            sub={<>0.9·{f(s.fy)}·{f(r.info.A, 0)} / 1000</>} val={f(r.info.Pc)} unit="kN" />
+          <Step desc="Kapasitas momen" expr={<>M<sub>c</sub> = 0.9·f<sub>y</sub>·Z</>} val={f(r.info.Mc)} unit="kNm" />
+          <Step desc={pmGE ? 'Interaksi P-M (Pr/Pc ≥ 0.2)' : 'Interaksi P-M (Pr/Pc < 0.2)'} refs={pmGE ? 'AISC 360-16 Pers. H1-1a' : 'AISC 360-16 Pers. H1-1b'}
+            expr={pmGE
+              ? <><Frac n="Pᵣ" d="Pᴄ" /> + <Frac n="8" d="9" />·<Frac n="M" d="Mᴄ" /> ≤ 1</>
+              : <><Frac n="Pᵣ" d="2Pᴄ" /> + <Frac n="M" d="Mᴄ" /> ≤ 1</>}
+            val={f(r.info.ratioPM, 3)} ok={r.checks.struktur.ok} />
+        </DerivGroup>
+
+        <DerivGroup title="F. Defleksi & displacement (kelayanan)">
+          <Step desc="Defleksi vertikal beam (P di tengah, balok sederhana)" refs="izin L/240"
+            expr={<>δ<sub>v</sub> = <Frac n="P·L³" d="48·E·I" /></>} val={f(r.info.dv)} unit="mm"
+            ok={r.checks.defleksi_vertikal.ok} note={`izin L/240 = ${f(r.info.dvAll)} mm`} />
+          <Step desc="Displacement lateral — angin (kantilever)" refs="PIP STC0105 (H/200)"
+            expr={<>δ<sub>w</sub> = <Frac n="F·H³" d="3·E·I" /></>} val={f(r.info.dhWind)} unit="mm"
+            ok={r.checks.displ_angin.ok} note={`izin H/200 = ${f(r.info.dhWindAll)} mm`} />
+          <Step desc="Displacement lateral — gempa (×Cd/Ie)" refs="ASCE 7 Risk III (0.015H)"
+            expr={<>δ<sub>E</sub> = <Frac n="F·H³" d="3·E·I" />·<Frac n="Cᴅ" d="Iₑ" /></>} val={f(r.info.dhSeis)} unit="mm"
+            ok={r.checks.displ_gempa.ok} note={`izin 0.015·H = ${f(r.info.dhSeisAll)} mm`} />
+        </DerivGroup>
+
+        <DerivGroup title="G. Penurunan pile (elastis)" refs="Braja M. Das (1988)">
+          <Step desc="Penurunan batang pile" expr={<>s<sub>e1</sub> = (Q<sub>wp</sub>+ξ·Q<sub>ws</sub>)·L<sub>p</sub> / (A<sub>p</sub>·E<sub>p</sub>)</>} val={f(r.info.se1)} unit="mm" />
+          <Step desc="Penurunan ujung pile" expr={<>s<sub>e2</sub> = (Q<sub>wp</sub>/A<sub>p</sub>)·(D/E<sub>s</sub>)·(1−μ²)·I<sub>wp</sub></>} val={f(r.info.se2)} unit="mm" />
+          <Step desc="Penurunan selimut pile" expr={<>s<sub>e3</sub> = (Q<sub>ws</sub>/(p·L<sub>p</sub>))·(D/E<sub>s</sub>)·(1−μ²)·I<sub>ws</sub></>} val={f(r.info.se3)} unit="mm" />
+          <Step desc="Penurunan total" expr={<>s<sub>e</sub> = s<sub>e1</sub>+s<sub>e2</sub>+s<sub>e3</sub></>}
+            sub={<>{f(r.info.se1)}+{f(r.info.se2)}+{f(r.info.se3)}</>} val={f(r.info.se)} unit="mm" ok={r.checks.penurunan_pile.ok} note="batas 25 mm" />
+        </DerivGroup>
+      </section>
+
+      <section className="rpt-section">
+        <h2>4. Diagram gaya dalam</h2>
+        <div className="fd-row">
+          <ColumnForceDiagram Htot={r.info.Htot} H={r.info.Hlat} Mbase={r.info.Mr} N={r.info.Pr} />
+          <BeamForceDiagram L={n(s.L)} P={n(s.P_oper)} Mmax={Mbeam} />
+        </div>
+        <p className="rpt-note2">
+          Model tersederhana: kolom diidealkan sebagai kantilever (jepit di titik fixity) di bawah gaya lateral H,
+          beam sebagai balok sederhana dengan beban pipa terpusat di tengah. Diagram STAAD/FEA tetap menjadi acuan.
+        </p>
+      </section>
+
+      <section className="rpt-section">
+        <h2>5. Hasil analisis</h2>
         <p className="rpt-terz">
           Beban angin: q<sub>h</sub> = {f2(r.info.qh)} N/m² · P<sub>use</sub> = {f2(r.info.Puse)} kN/m² · F<sub>angin</sub> = {f2(r.info.Fwind)} kN
         </p>

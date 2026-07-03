@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
 import EquipmentFoundationSketch from './EquipmentFoundationSketch.jsx';
 import { compute, def } from './equipmentFoundationCalc.js';
+import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f } from './reportKit.jsx';
 
 const LABELS = {
   rasio_berat: 'Rasio berat fondasi ≥ 5× mesin (kN)',
@@ -153,8 +154,13 @@ function EquipmentReportSheet({ s, r, engineerName, qcName }) {
   const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—');
   const i = r.info;
+  const nz = (v) => (Number.isFinite(+v) ? +v : 0);
+  const govBC = r.lcs.find((l) => l.nama === r.checks.daya_dukung.lc) || {};
+  const aX = 0.5 * nz(s.Bf);
+  const VmaxX = i.qu_f * aX;
   return (
     <div className="report-sheet">
+      <FDDefs />
       <header className="rpt-head">
         <div className="rpt-brand">
           <LogoMark size={48} />
@@ -212,7 +218,114 @@ function EquipmentReportSheet({ s, r, engineerName, qcName }) {
       </section>
 
       <section className="rpt-section">
-        <h2>4. Hasil pengecekan</h2>
+        <h2>4. Rincian perhitungan</h2>
+
+        <DerivGroup title="A. Berat fondasi & rasio (analisis dinamik diabaikan)" refs="RTS PHR-SP-CI-GG-002 · Arya (1979)">
+          <Step desc="Berat blok fondasi" expr={<>W<sub>f</sub> = γ<sub>c</sub>·A<sub>f</sub>·H<sub>f</sub></>}
+            sub={<>{f(s.gc)}·{f(i.Af, 3)}·{f(s.Hf)}</>} val={f(i.Wf)} unit="kN" />
+          <Step desc="Rasio berat fondasi terhadap mesin (syarat ≥ 5)"
+            expr={<>W<sub>f</sub> / EO</>} sub={<>{f(i.Wf)} / {f(s.EO)}</>} val={f(i.ratioW)} ok={r.checks.rasio_berat.ok} />
+        </DerivGroup>
+
+        <DerivGroup title="B. Daya dukung tanah (Meyerhof)" refs="Meyerhof (1963)">
+          <Step desc="Faktor kapasitas dukung" expr={<>N<sub>q</sub> = tan²(45+ϕ/2)·e^(π·tanϕ)</>} val={f(i.tz.Nq)} />
+          <Step expr={<>N<sub>c</sub> = (N<sub>q</sub>−1)·cotϕ · ; · N<sub>γ</sub> = 2(N<sub>q</sub>+1)·tanϕ</>}
+            sub={<>N<sub>c</sub> = {f(i.tz.Nc)} ; N<sub>γ</sub> = {f(i.tz.Ng)}</>} />
+          <Step desc="Kapasitas dukung ultimit" expr={<>q<sub>u</sub> = c·N<sub>c</sub>·F<sub>cs</sub>F<sub>cd</sub> + q·N<sub>q</sub>·F<sub>qs</sub> + 0.5·γ·B·N<sub>γ</sub>·F<sub>γs</sub></>}
+            val={f(i.tz.qu)} unit="kN/m²" />
+          <Step desc={i.tz.manual ? 'Daya dukung izin (Soil Data — governing)' : 'Daya dukung izin'}
+            refs="FS = 3" expr={<>q<sub>all</sub> = q<sub>u</sub> / FS</>}
+            sub={i.tz.manual ? <>{f(i.tz.qall_auto)} (auto) → dipakai q<sub>all</sub> Soil Data</> : <>{f(i.tz.qu)} / {f(s.SF_bc)}</>}
+            val={f(i.qall)} unit="kN/m²" />
+        </DerivGroup>
+
+        <DerivGroup title="C. Beban angin" refs="SNI 1727:2020 · ASCE 7-16">
+          <Step desc="Tekanan kecepatan (≥ 770 N/m²)" refs="SNI 1727:2020 Pers. 26.10-1"
+            expr={<>q<sub>h</sub> = 0.613·K<sub>z</sub>·K<sub>zt</sub>·K<sub>d</sub>·K<sub>e</sub>·V²</>}
+            sub={<>{f(i.qh0)} → max({f(i.qh0)} ; {f(s.qh_min)})</>} val={f(i.qh)} unit="N/m²" />
+          <Step desc="Gaya angin (arah X / Z)" refs="ASCE 7-16 Ps. 29.4"
+            expr={<>H<sub>w</sub> = q<sub>h</sub>·G·C<sub>f</sub>·A<sub>w</sub></>}
+            sub={<>A<sub>wx</sub>={f(i.Awx, 3)} ; A<sub>wz</sub>={f(i.Awz, 3)} m²</>} val={`${f(i.Hwx)} / ${f(i.Hwz)}`} unit="kN" />
+        </DerivGroup>
+
+        <DerivGroup title="D. Beban gempa" refs="SNI 1726:2019">
+          <Step desc="Koefisien seismik" refs="SNI 1726:2019 Ps. 7.8.1.1"
+            expr={<>C<sub>s</sub> = S<sub>DS</sub>·I<sub>e</sub>/R ≥ C<sub>s,min</sub></>}
+            sub={<>{f(s.SDS)}·{f(s.Ie)}/{f(s.R)} = {f(i.Cs, 3)} ; min {f(i.CsMin, 3)}</>} val={f(i.Cs, 3)} />
+          <Step desc="Gaya gempa horizontal & vertikal (EO)"
+            expr={<>V = C<sub>s</sub>·EO · ; · V<sub>y</sub> = 0.2·S<sub>DS</sub>·(D+EO)</>}
+            sub={<>V = {f(i.Vh.EO)} ; V<sub>y</sub> = {f(i.Vy.EO)}</>} unit="kN" />
+        </DerivGroup>
+
+        <DerivGroup title="E. Tegangan kontak tanah" refs={`governing ${r.checks.daya_dukung.lc}`}>
+          <Step desc="Tegangan maksimum di dasar fondasi"
+            expr={<>σ<sub>max</sub> = <Frac n={<>F<sub>y</sub></>} d={<>A<sub>f</sub></>} /> + <Frac n={<>|M<sub>x</sub>|</>} d={<>S<sub>x</sub></>} /> + <Frac n={<>|M<sub>z</sub>|</>} d={<>S<sub>z</sub></>} /></>}
+            sub={<><Frac n={f(govBC.Fy)} d={f(i.Af, 3)} /> + <Frac n={f(Math.abs(nz(govBC.Mx)))} d={f(i.Sx, 3)} /> + <Frac n={f(Math.abs(nz(govBC.Mz)))} d={f(i.Sz, 3)} /></>}
+            val={f(r.checks.daya_dukung.demand)} unit="kN/m²" ok={r.checks.daya_dukung.demand <= i.qall} />
+          <Step desc="Tegangan minimum (harus ≥ 0, tanpa uplift)" expr={<>σ<sub>min</sub> = F<sub>y</sub>/A<sub>f</sub> − |M<sub>x</sub>|/S<sub>x</sub> − |M<sub>z</sub>|/S<sub>z</sub></>}
+            val={f(r.checks.daya_dukung.smin)} unit="kN/m²" ok={r.checks.daya_dukung.smin >= 0} />
+        </DerivGroup>
+
+        <DerivGroup title="F. Stabilitas">
+          <Step desc="Geser (SF ≥ 1.5)" refs="μ=0.5 SNI 1726:2019 Ps. 7.13.8"
+            expr={<>SF = F<sub>y</sub>·μ / H</>} val={f(r.checks.stab_geser.SF)} ok={r.checks.stab_geser.ok} />
+          <Step desc="Guling (SF ≥ 2)" expr={<>SF = M<sub>r</sub> / M<sub>guling</sub> = F<sub>y</sub>·0.5·L / M</>}
+            val={f(r.checks.guling.SF)} ok={r.checks.guling.ok} />
+          <Step desc="Buoyancy (W_f ≥ 1.5·gaya angkat)" expr={<>W<sub>f</sub> ≥ 1.5·(H<sub>fb</sub>·A<sub>f</sub>·γ<sub>w</sub>)</>}
+            sub={<>SF = {f(r.checks.buoyancy.SF)}</>} ok={r.checks.buoyancy.ok} />
+        </DerivGroup>
+
+        <DerivGroup title="G. Penurunan (Braja Das)" refs="Steinbrenner · Braja M. Das (1988)">
+          <Step desc="Penurunan segera" expr={<>S<sub>i</sub> = q<sub>0</sub>·B·<Frac n="(1−μ²)" d={<>E<sub>s</sub></>} />·I<sub>s</sub>·I<sub>f</sub>·4</>}
+            sub={<>I<sub>s</sub> = I₁+<Frac n="(1−2μ)" d="(1−μ)" />·I₂ = {f(i.Is, 3)}</>} val={f(i.Si)} unit="mm" />
+          <Step desc={`Konsolidasi (${i.isOC ? 'OC → Cs' : 'NC → Cc'})`} expr={<>S<sub>c</sub> = <Frac n="C·H" d="1+e₀" />·log<Frac n="P₀'+ΔP" d="P₀'" /></>}
+            sub={<>P₀'={f(i.Po, 0)} ; ΔP={f(i.dP, 0)} kg/m² → Sc1 {f(i.Sc1)}+Sc2 {f(i.Sc2)}</>} />
+          <Step desc="Penurunan total (batas 25 mm)" expr={<>S = S<sub>i</sub>+S<sub>c1</sub>+S<sub>c2</sub></>}
+            sub={<>{f(i.Si)}+{f(i.Sc1)}+{f(i.Sc2)}</>} val={f(i.Stot)} unit="mm" ok={r.checks.penurunan.ok} />
+        </DerivGroup>
+
+        <DerivGroup title="H. Lentur footing & tulangan" refs="SNI 2847:2019">
+          <Step desc="Beban garis ultimit & tinggi efektif"
+            expr={<>q<sub>u,f</sub> = 1.4·q<sub>all</sub> ; d = H<sub>f</sub>−c−0.5·D<sub>rl</sub></>}
+            sub={<>q<sub>u,f</sub>={f(i.qu_f)} kN/m ; d={f(i.d_eff)} mm</>} />
+          <Step desc="Kapasitas momen footing" refs="SNI 2847:2019 Tabel 21.2.2"
+            expr={<>ϕM<sub>n</sub> = ϕ·A<sub>s</sub>·f<sub>y</sub>·(d−0.5a)</>} val={f(i.Mc)} unit="kNm" />
+          <Step desc="Momen ultimit (arah X kantilever ½B / arah Z)"
+            expr={<>M<sub>ux</sub> = 0.5·q<sub>u,f</sub>·(0.5B)² ; M<sub>uz</sub> = ⅛·q<sub>u,f</sub>·(0.5L)²</>}
+            sub={<>M<sub>ux</sub>={f(i.Mux)} ; M<sub>uz</sub>={f(i.Muz)} kNm</>} ok={r.checks.lentur_x.ok && r.checks.lentur_z.ok} />
+          <Step desc="Tulangan minimum" refs="SNI 2847:2019 Tabel 8.6.1.1"
+            expr={<>A<sub>s,min</sub> = max(0.0018·420/f<sub>y</sub> ; 0.0014)·A<sub>g</sub></>}
+            sub={<>{f(i.As_min, 0)} vs A<sub>s</sub> {f(i.As, 0)} mm²</>} ok={r.checks.tulangan_min.ok} />
+        </DerivGroup>
+
+        <DerivGroup title="I. Anchor bolt (4 baut sudut)" refs="ACI 318-14 Bab 17">
+          <Step desc="Luas efektif baut" expr={<>A<sub>se</sub> = π/4·(d<sub>o</sub>−0.9743/n<sub>t</sub>)²</>} val={f(i.Ase)} unit="mm²" />
+          <Step desc="Kapasitas tarik (min baja/breakout/pullout/blow-out)" refs="ACI 318-14 17.4"
+            expr={<>ϕN<sub>n</sub> = 0.7·min(N<sub>sa</sub>,N<sub>cb</sub>,N<sub>pn</sub>,N<sub>sb</sub>)</>}
+            sub={<>min({f(i.Nsa)},{f(i.Ncb)},{f(i.Npn)},{f(i.Nsb)}) · N<sub>u</sub>={f(i.Nu)}</>} val={f(i.phiNn)} unit="kN" ok={r.checks.angkur_tarik.ok} />
+          <Step desc="Kapasitas geser (min baja/breakout/pryout)" refs="ACI 318-14 17.5"
+            expr={<>ϕV<sub>n</sub> = 0.7·min(V<sub>sa</sub>,V<sub>cb</sub>,V<sub>cp</sub>)</>}
+            sub={<>V<sub>u</sub>={f(i.Vu)} kN</>} val={f(i.phiVn)} unit="kN" ok={r.checks.angkur_geser.ok} />
+          <Step desc="Interaksi tarik–geser" refs="ACI 318-14 17.6.3"
+            expr={<>N<sub>u</sub>/ϕN<sub>n</sub> + V<sub>u</sub>/ϕV<sub>n</sub> ≤ 1.2</>}
+            sub={<>{f(i.Nu)}/{f(i.phiNn)} + {f(i.Vu)}/{f(i.phiVn)}</>} val={f(i.inter, 3)} ok={r.checks.angkur_interaksi.ok} />
+        </DerivGroup>
+      </section>
+
+      <section className="rpt-section">
+        <h2>5. Diagram gaya dalam</h2>
+        <div className="fd-row">
+          <SoilPressureDiagram sMax={r.checks.daya_dukung.demand} sMin={r.checks.daya_dukung.smin} />
+          <CantileverForceDiagram a={aX} w={i.qu_f} Vmax={VmaxX} Mmax={i.Mux} />
+        </div>
+        <p className="rpt-note2">
+          Tekanan tanah dimodelkan trapesium (σmax–σmin) untuk cek daya dukung; footing ditinjau sebagai
+          kantilever dari muka blok dengan beban garis ultimit q<sub>u,f</sub> = 1.4·q<sub>all</sub> (arah X ditampilkan).
+        </p>
+      </section>
+
+      <section className="rpt-section">
+        <h2>6. Hasil pengecekan</h2>
         <table className="rpt-table rpt-checks">
           <thead><tr><th>Pengecekan</th><th>Demand</th><th>Kapasitas</th><th>Rasio</th><th>Status</th></tr></thead>
           <tbody>
