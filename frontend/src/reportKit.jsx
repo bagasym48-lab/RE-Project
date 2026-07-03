@@ -210,7 +210,7 @@ export function CantileverForceDiagram({ a, w, Vmax, Mmax, title = 'Gaya dalam f
         <text className="fd-lbl" x={W / 2} y={14} textAnchor="middle">qu = {f(w)} kN/m ↑</text>
         <rect className="fd-mem" x={x0} y={yMem} width={span} height={8} />
         {Array.from({ length: 7 }).map((_, k) => { const x = x0 + (k / 6) * span; return <line key={k} className="fd-arrow" x1={x} y1={yMem + 26} x2={x} y2={yMem + 8} markerEnd="url(#fdArrow)" />; })}
-        <line className="fd-face" x1={x0} y1={yMem - 4} x2={x0} y2={yM + mBand} />
+        <line className="fd-face" x1={x0} y1={yMem - 4} x2={x0} y2={yM - 12} />
         <text className="fd-face-lbl" x={x0 + 3} y={yMem - 8} textAnchor="start">muka kolom</text>
         <text className="fd-face-lbl" x={x1} y={yMem - 8} textAnchor="end">tepi</text>
         <text className="fd-dim" x={W / 2} y={yMem + 40} textAnchor="middle">a = {f(a)} m</text>
@@ -222,10 +222,10 @@ export function CantileverForceDiagram({ a, w, Vmax, Mmax, title = 'Gaya dalam f
         <text className="fd-val" x={x0 + 6} y={yS - sBand + 14} textAnchor="start">Vmax {f(Vmax)}</text>
 
         {/* BMD */}
-        <text className="fd-lbl" x={x0} y={yM - 8} textAnchor="start">BMD (kNm)</text>
+        <text className="fd-lbl" x={x0 + 4} y={yM - 10} textAnchor="start">BMD (kNm)</text>
         <line className="fd-axis" x1={x0} y1={yM} x2={x1} y2={yM} />
         <polygon className="fd-mom-fill" points={`${x0},${yM} ${poly(bmd)} ${x1},${yM}`} />
-        <text className="fd-val" x={x0 + 6} y={yM + mBand - 6} textAnchor="start">Mmax {f(Mmax)}</text>
+        <text className="fd-val" x={x0 + 10} y={yM + mBand + 14} textAnchor="start">Mmax {f(Mmax)}</text>
       </svg>
     </figure>
   );
