@@ -53,7 +53,7 @@ export default function CivilView({ userId, role, profile, userEmail, tool, onTo
 
       <div className="civil-body">
         {t === 'calc' && <KalkulatorView userId={userId} profile={profile} userEmail={userEmail} pondasi={pondasi} setPondasi={setPondasi} equip={equip} setEquip={setEquip} pipe={pipe} setPipe={setPipe} project={project} setProject={setProject} />}
-        {t === 'mto' && <MtoPage pondasi={pondasi} equip={equip} pipe={pipe} />}
+        {t === 'mto' && <MtoPage pondasi={pondasi} equip={equip} pipe={pipe} project={project} />}
         {t === 'progress' && <ProgressPage userId={userId} role={role} />}
       </div>
     </div>

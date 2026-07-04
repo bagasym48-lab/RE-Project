@@ -148,6 +148,18 @@ export function DerivGroup({ title, refs, children }) {
   );
 }
 
+// Pengantar teoritis — ditempatkan SEBELUM rincian/hasil perhitungan pada
+// laporan cetak, agar pembaca memahami dasar teori sebelum melihat angka.
+// Tanpa label/judul: langsung ke kalimat pengantarnya. (title/refs tetap
+// diterima demi kompatibilitas pemanggil, namun tidak dirender.)
+export function TheoryIntro({ children }) {
+  return (
+    <div className="rpt-theory">
+      <div className="rt-body">{children}</div>
+    </div>
+  );
+}
+
 // ============================================================
 // Diagram gaya dalam
 // ============================================================

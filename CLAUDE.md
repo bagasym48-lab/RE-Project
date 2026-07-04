@@ -244,6 +244,13 @@ demand/kapasitas, settlement, `info.*`) all come from `/calculate`. Diagram/deri
 stay display-only; never let them drive verdicts. `reportKit` styles + print rules live in `index.css`
 (`.calc-step`, `.rpt-ref`, `.frac`, `.fd-*`).
 
+**Reports open each calculation section with a theoretical preamble** (`TheoryIntro` in
+`reportKit.jsx`, styled `.rpt-theory` — a light left-accent box holding just the intro paragraphs,
+no badge/title). It is placed **before** the derivation groups so the reader gets the theory before
+the numbers: in the three calculators before §6/§7 (or equivalent), and in the MTO reports before
+the take-off results. Presentational only — pass paragraphs as children. (It still accepts `title`/
+`refs` props for caller compatibility but ignores them.)
+
 ### MTO (`frontend/src/MtoPage.jsx`)
 A third top-nav tab (after Kalkulator/Progress) for **Material Take-Off** — pure-frontend
 calculators (no backend/DB). Three sub-tabs: **Pondasi Dangkal** (concrete volume + rebar weight
@@ -251,6 +258,13 @@ from dims/reinforcement → cost), **Pondasi Equipment** (`MtoEquipment` — blo
 lean-concrete + two-way mesh rebar + anchor-bolt steel weight → cost), and **Pipe Support**
 (steel-pipe table by type/length/qty → weight → cost). Rebar weight `0.006165·d²` kg/m; pipe
 weights are a Sch-40 `kg/m` catalog. Educational estimate — excludes formwork/labour/fittings.
+
+**Each MTO sub-tab is printable** (`MtoReportSheet`, a generic hidden `.report-sheet`): cover →
+§1 Umum (metode/lingkup) → §2 Data Input → §3 (`TheoryIntro` + results table). `MtoPage` takes a
+`project` prop (threaded from `CivilView`, same `projectInfo` state as the calculators) for the
+cover; each sub-tab has its own `SignPrint` (engineer/QC names + 🖨️ print button) via the `useSign`
+hook. `@media print` hides `.mto-subtabs` alongside the other chrome; the neutral cover badge uses
+`.rpt-verdict.mto`.
 
 **All three MTOs are linked to their calculators.** Each calculator's input state is **lifted to
 `CivilView`** via a `usePersistedState(key, default)` helper (each persisted to its own

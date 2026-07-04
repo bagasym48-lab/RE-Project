@@ -1,7 +1,11 @@
 // MtoPage.jsx — Material Take-Off: estimasi volume/berat & harga.
-// Dua sub-tab: Pondasi Dangkal (beton + tulangan) & Pipe Support (steel pipe).
+// Tiga sub-tab: Pondasi Dangkal, Pondasi Equipment & Pipe Support.
 // Murni di frontend (aritmetika), tidak memanggil backend/DB.
+// Setiap sub-tab bisa dicetak (laporan A4) — struktur & gaya mengikuti
+// laporan kalkulasi (ReportCover, pengantar teoritis, tabel hasil).
 import { useState } from 'react';
+import { FDDefs, ReportCover, ReportTOC, TheoryIntro, ItemsTable, defProject } from './reportKit.jsx';
+import { LogoMark } from './Logo.jsx';
 
 const rupiah = (n) => 'Rp ' + Math.round(Number(n) || 0).toLocaleString('id-ID');
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -17,6 +21,119 @@ function NumField({ label, value, onChange, step = 'any' }) {
   );
 }
 
+// ---- Kontrol tanda tangan + tombol cetak (dipakai di tiap sub-tab MTO) ----
+function useSign() {
+  const [engineer, setEngineer] = useState('');
+  const [qc, setQc] = useState('');
+  return { engineer, setEngineer, qc, setQc };
+}
+
+function SignPrint({ sign }) {
+  return (
+    <>
+      <div className="card sign-input">
+        <h3>Tanda tangan laporan</h3>
+        <label className="field"><span>Disusun oleh</span>
+          <input value={sign.engineer} onChange={(e) => sign.setEngineer(e.target.value)} placeholder="Nama penyusun" /></label>
+        <label className="field"><span>Diperiksa oleh (QC)</span>
+          <input value={sign.qc} onChange={(e) => sign.setQc(e.target.value)} placeholder="Nama QC" /></label>
+      </div>
+      <button className="print-btn" onClick={() => window.print()}>🖨️ Cetak / Simpan PDF (A4)</button>
+    </>
+  );
+}
+
+// ---- Laporan A4 generik MTO (tersembunyi di layar, tampil saat cetak) ------
+// resultRows: array {label, value, kind?('sub'|'total')}.
+function MtoReportSheet({ title, subtitle, project, sign, metode, inputRows,
+                         theoryTitle, theoryRefs, theory, resultRows, sketch, note }) {
+  const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  return (
+    <div className="report-sheet">
+      <FDDefs />
+      <ReportCover title={title} project={project} engineer={sign.engineer} qc={sign.qc} />
+      <ReportTOC items={[
+        ['1. Umum', ['1.1 Metode & Acuan', '1.2 Ruang Lingkup Estimasi']],
+        ['2. Data Input', []],
+        ['3. Perhitungan Material Take-Off', ['3.1 Pengantar Teoritis', '3.2 Hasil Take-Off']],
+      ]} />
+      <header className="rpt-head">
+        <div className="rpt-brand">
+          <LogoMark size={48} />
+          <div>
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
+            <p className="rpt-date">Tanggal cetak: {today}</p>
+          </div>
+        </div>
+        <div className="rpt-verdict mto">ESTIMASI</div>
+      </header>
+
+      <section className="rpt-section">
+        <h2>1. Umum</h2>
+        <h3>1.1 Metode &amp; Acuan</h3>
+        <ItemsTable head={['Item', 'Deskripsi']} rows={metode} />
+        <h3>1.2 Ruang Lingkup Estimasi</h3>
+        <p className="rpt-note2">
+          Estimasi bersifat kuantitas material pokok dan harga satuan indikatif. Belum termasuk
+          bekisting, lantai kerja tambahan, sisa/waste di luar yang tercantum, fitting, upah, alat,
+          transportasi, dan overhead. Angka dari kalkulasi tersinkron otomatis — perubahan dimensi di
+          modul kalkulasi ikut memperbarui take-off ini.
+        </p>
+      </section>
+
+      <section className="rpt-section">
+        <h2>2. Data Input</h2>
+        <div className="rpt-kv">
+          {inputRows.map(([l, v], idx) => (
+            <div key={idx} className="rpt-kv-item"><span>{l}</span><b>{v}</b></div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rpt-section">
+        <h2>3. Perhitungan Material Take-Off</h2>
+        <h3>3.1 Pengantar Teoritis</h3>
+        <TheoryIntro title={theoryTitle} refs={theoryRefs}>{theory}</TheoryIntro>
+        {sketch && <div className="rpt-sketch">{sketch}</div>}
+        <h3>3.2 Hasil Take-Off</h3>
+        <table className="rpt-table rpt-checks">
+          <thead><tr><th>Uraian</th><th>Kuantitas / Nilai</th></tr></thead>
+          <tbody>
+            {resultRows.map((r, idx) => (
+              <tr key={idx} className={r.kind || ''}>
+                <td>{r.label}</td><td className="num">{r.value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="rpt-note2">{note}</p>
+      </section>
+
+      <footer className="rpt-foot">
+        <p className="rpt-disc">
+          ⚠️ Estimasi material bersifat <b>indikatif untuk keperluan perencanaan</b>; kuantitas dan harga
+          final wajib diverifikasi terhadap gambar kerja, spesifikasi, dan BoQ resmi.
+        </p>
+        <div className="rpt-sign">
+          <div>
+            <span>Disusun oleh</span>
+            <div className="rpt-line" />
+            <div className="rpt-name">{sign.engineer ? `( ${sign.engineer} )` : ' '}</div>
+            <div className="rpt-role">Penyusun</div>
+          </div>
+          <div>
+            <span>Diperiksa oleh</span>
+            <div className="rpt-line" />
+            <div className="rpt-name">{sign.qc ? `( ${sign.qc} )` : ' '}</div>
+            <div className="rpt-role">QC</div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
 // ============================================================
 // MTO Pondasi Dangkal
 // ============================================================
@@ -25,8 +142,9 @@ const defMtoPondasi = {
   hBeton: 1200000, hBesi: 15000,
 };
 
-function MtoPondasi({ fd }) {
+function MtoPondasi({ fd, project }) {
   const [v, setV] = useState(defMtoPondasi);
+  const sign = useSign();
   const upd = (k) => (val) => setV((s) => ({ ...s, [k]: val }));
   const g = (k) => num(v[k]);
   const f = fd || {};
@@ -58,7 +176,9 @@ function MtoPondasi({ fd }) {
   const hargaBesi = beratBesi * g('hBesi');
   const total = hargaBeton + hargaBesi;
 
+  const rp = (x) => (Number(x) || 0).toFixed(1);
   return (
+   <>
     <div className="layout">
       <section className="inputs">
         <p className="mto-link-note">🔗 Dimensi tersinkron dengan <b>Kalkulasi Pondasi Dangkal</b>. Ubah dimensi di kalkulasi → MTO ikut berubah otomatis.</p>
@@ -116,8 +236,61 @@ function MtoPondasi({ fd }) {
           </table>
           <p className="muted-note">Estimasi material beton + tulangan. Belum termasuk bekisting, lantai kerja, upah, dll. Wajib diverifikasi.</p>
         </div>
+        <SignPrint sign={sign} />
       </aside>
     </div>
+
+    <MtoReportSheet
+      title="Kalkulasi MTO Pondasi Dangkal"
+      subtitle="Material Take-Off · beton & tulangan · estimasi kuantitas dan biaya"
+      project={project} sign={sign}
+      metode={[
+        ['Jenis pekerjaan', 'Pondasi telapak (footing) beton bertulang + pedestal'],
+        ['Volume beton', 'V = (B·L·h) + n·(c1·c2·Hp) — dimensi dari kalkulasi'],
+        ['Berat tulangan', 'w = 0.006165·d² kg/m (≈ d²/162) × panjang total batang'],
+        ['Sumber dimensi', 'Tersinkron dari Kalkulasi Pondasi Dangkal'],
+        ['Harga', 'Harga satuan indikatif (Rp) — dapat disesuaikan pengguna'],
+      ]}
+      inputRows={[
+        ['B / L / h footing (mm)', `${B} / ${L} / ${h}`],
+        ['c1 / c2 / Hp pedestal (mm)', `${c1} / ${c2} / ${Hp}`],
+        ['Jumlah pedestal', `${np}`],
+        ['Selimut beton (mm)', `${cover}`],
+        ['Ø / spasi tul. footing (mm)', `${fD} / ${fS}`],
+        ['Lapis tul. footing', `${Math.max(g('lapis'), 1)}`],
+        ['Tul. vertikal pedestal', `${g('pvN')} Ø${g('pvD')} mm`],
+        ['Sengkang', `Ø${g('tieD')} @ ${g('tieS')} mm`],
+        ['Harga beton (Rp/m³)', rupiah(g('hBeton'))],
+        ['Harga besi (Rp/kg)', rupiah(g('hBesi'))],
+      ]}
+      theoryTitle="Prinsip Material Take-Off pondasi telapak"
+      theoryRefs="SNI 2847:2019 · praktik estimasi kuantitas"
+      theory={<>
+        <p>
+          Material Take-Off (MTO) menghitung kebutuhan material dari geometri elemen struktur. Volume beton
+          diperoleh dari jumlah volume telapak (B·L·h) dan pedestal (c1·c2·Hp) untuk tiap jumlah pedestal.
+          Kebutuhan tulangan dihitung dari jumlah batang tiap arah (bentang bersih dibagi spasi) dikalikan
+          panjang efektif dan jumlah lapis, lalu dikonversi ke berat dengan w = 0.006165·d² kg/m.
+        </p>
+        <p>
+          Berat total tulangan mencakup jaring footing dua arah serta tulangan vertikal dan sengkang pedestal.
+          Biaya diestimasi dengan mengalikan volume beton dan berat besi terhadap harga satuannya. Hasil ini
+          adalah estimasi awal dan tidak menggantikan Bill of Quantity (BoQ) resmi.
+        </p>
+      </>}
+      resultRows={[
+        { label: 'Volume beton', value: `${volBeton.toFixed(3)} m³` },
+        { label: `Besi footing (${nx}+${ny} batang × ${Math.max(g('lapis'), 1)} lapis)`, value: `${rp(beratFoot)} kg` },
+        { label: 'Besi vertikal pedestal', value: `${rp(beratVert)} kg` },
+        { label: `Besi sengkang (${nTies}×)`, value: `${rp(beratTie)} kg` },
+        { label: 'Total besi', value: `${rp(beratBesi)} kg`, kind: 'sub' },
+        { label: 'Harga beton', value: rupiah(hargaBeton) },
+        { label: 'Harga besi', value: rupiah(hargaBesi) },
+        { label: 'TOTAL BIAYA MATERIAL', value: rupiah(total), kind: 'total' },
+      ]}
+      note="Estimasi material beton + tulangan. Belum termasuk bekisting, lantai kerja, upah, dan alat."
+    />
+   </>
   );
 }
 
@@ -134,8 +307,9 @@ const PIPE_TYPES = [
   { nama: 'CS Pipe 10" Sch40', kgm: 60.31 },
 ];
 
-function MtoPipe({ pipe }) {
+function MtoPipe({ pipe, project }) {
   const p = pipe || {};
+  const sign = useSign();
   const pg = (k) => num(p[k]);
   // Section pipa baja dari kalkulasi (Do,t mm) → kg/m (baja karbon)
   const Do = pg('Do'), t = pg('t');
@@ -166,7 +340,9 @@ function MtoPipe({ pipe }) {
   const totBerat = beratLinked + beratManual;
   const totHarga = totBerat * num(hBesi);
 
+  const rp = (x) => (Number(x) || 0).toFixed(1);
   return (
+   <>
     <div className="layout">
       <section className="inputs">
         <p className="mto-link-note">🔗 Penampang &amp; panjang member tersinkron dengan <b>Kalkulasi Pipe Support</b>. Ubah di kalkulasi → MTO ikut berubah otomatis.</p>
@@ -235,8 +411,55 @@ function MtoPipe({ pipe }) {
           </table>
           <p className="muted-note">Berat pipa baja = (Do−t)·t·0.0246615 kg/m. Belum termasuk fitting, base plate, coating, upah, dll. Wajib diverifikasi.</p>
         </div>
+        <SignPrint sign={sign} />
       </aside>
     </div>
+
+    <MtoReportSheet
+      title="Kalkulasi MTO Pipe Support"
+      subtitle="Material Take-Off · pipa baja struktur · estimasi berat dan biaya"
+      project={project} sign={sign}
+      metode={[
+        ['Jenis pekerjaan', 'Struktur pipe support dari pipa baja (kolom + beam)'],
+        ['Berat pipa', 'w = (Do−t)·t·0.0246615 kg/m (baja karbon)'],
+        ['Panjang member', 'Kolom = H atas + kedalaman ; Beam = L (dari kalkulasi)'],
+        ['Pipa tambahan', 'Katalog Sch-40 (kg/m) untuk item di luar member utama'],
+        ['Harga', 'Harga satuan indikatif (Rp/kg) — dapat disesuaikan pengguna'],
+      ]}
+      inputRows={[
+        ['Ø luar / tebal (mm)', `${Do} / ${t}`],
+        ['Berat pipa (kg/m)', kgmLinked.toFixed(2)],
+        ['Panjang kolom (m)', colLen.toFixed(2)],
+        ['Panjang beam L (m)', beamLen.toFixed(2)],
+        ['Jumlah support identik', `${nSup}`],
+        ['Pipa tambahan (baris)', `${rows.length}`],
+        ['Harga steel pipe (Rp/kg)', rupiah(num(hBesi))],
+      ]}
+      theoryTitle="Prinsip Material Take-Off struktur pipa baja"
+      theoryRefs="Katalog baja Sch-40 · praktik estimasi kuantitas"
+      theory={<>
+        <p>
+          Kebutuhan material pipe support dihitung dari berat linier penampang pipa baja
+          w = (D<sub>o</sub>−t)·t·0.0246615 kg/m dikalikan panjang total member. Panjang kolom diambil dari
+          tinggi di atas muka tanah ditambah kedalaman tanam, sedangkan panjang beam mengikuti bentang L —
+          keduanya tersinkron dari modul Kalkulasi Pipe Support dan dikalikan jumlah support identik.
+        </p>
+        <p>
+          Pipa tambahan (misal bracing atau aksesori) dapat dimasukkan dari katalog berat Sch-40. Total berat
+          baja dikalikan harga satuan untuk memperoleh estimasi biaya material. Estimasi ini belum mencakup
+          base plate, fitting, pengelasan, dan pelapisan (coating).
+        </p>
+      </>}
+      resultRows={[
+        { label: `Baja terhubung — kolom + beam (${nSup}×)`, value: `${rp(beratLinked)} kg` },
+        ...(beratManual > 0 ? [{ label: 'Pipa tambahan', value: `${rp(beratManual)} kg` }] : []),
+        { label: 'Total panjang pipa', value: `${rp(totLen)} m` },
+        { label: 'Total berat baja', value: `${rp(totBerat)} kg`, kind: 'sub' },
+        { label: 'TOTAL BIAYA MATERIAL', value: rupiah(totHarga), kind: 'total' },
+      ]}
+      note="Berat pipa baja = (Do−t)·t·0.0246615 kg/m. Belum termasuk fitting, base plate, coating, dan upah."
+    />
+   </>
   );
 }
 
@@ -258,8 +481,9 @@ function LinkedField({ label, value }) {
   );
 }
 
-function MtoEquipment({ equip }) {
+function MtoEquipment({ equip, project }) {
   const [v, setV] = useState(defMtoEquip);
+  const sign = useSign();
   const upd = (k) => (val) => setV((s) => ({ ...s, [k]: val }));
   const g = (k) => num(v[k]);
   const e = equip || {};
@@ -295,7 +519,9 @@ function MtoEquipment({ equip }) {
   const hargaAngkur = beratAngkur * g('hAngkur');
   const total = hargaBeton + hargaLc + hargaBesi + hargaAngkur;
 
+  const rp = (x) => (Number(x) || 0).toFixed(1);
   return (
+   <>
     <div className="layout">
       <section className="inputs">
         <p className="mto-link-note">🔗 Dimensi tersinkron dengan <b>Kalkulasi Pondasi Equipment</b>. Ubah dimensi di kalkulasi → MTO ikut berubah otomatis.</p>
@@ -354,13 +580,68 @@ function MtoEquipment({ equip }) {
           </table>
           <p className="muted-note">Estimasi beton + tulangan + anchor bolt. Belum termasuk bekisting, grouting, upah, dll. Wajib diverifikasi.</p>
         </div>
+        <SignPrint sign={sign} />
       </aside>
     </div>
+
+    <MtoReportSheet
+      title="Kalkulasi MTO Pondasi Equipment"
+      subtitle="Material Take-Off · beton, lantai kerja, tulangan & anchor bolt"
+      project={project} sign={sign}
+      metode={[
+        ['Jenis pekerjaan', 'Fondasi blok equipment (tanpa pedestal) beton bertulang'],
+        ['Volume beton', 'V = Lf·Bf·Hf ; lantai kerja = Lf·Bf·t_lc'],
+        ['Berat tulangan', 'w = 0.006165·d² kg/m × panjang jaring 2 arah (+ waste)'],
+        ['Anchor bolt', 'Berat baja = ¼π·d²·L·7.85×10⁻⁶ kg per baut'],
+        ['Sumber dimensi', 'Tersinkron dari Kalkulasi Pondasi Equipment'],
+      ]}
+      inputRows={[
+        ['Lf / Bf / Hf (m)', `${Lf} / ${Bf} / ${Hf}`],
+        ['Selimut beton (mm)', `${cover}`],
+        ['Ø / spasi tulangan (mm)', `${Drl} / ${srl}`],
+        ['Lapis tulangan', `${lapis}`],
+        ['Anchor bolt', `${nBolt} baut Ø${dBolt} mm, tanam ${hAnchor} mm`],
+        ['Tebal lantai kerja (m)', `${g('tLc')}`],
+        ['Waste besi (%)', `${g('wasteBesi')}`],
+        ['Harga beton / besi (Rp)', `${rupiah(g('hBeton'))} · ${rupiah(g('hBesi'))}`],
+        ['Harga lantai kerja / anchor (Rp)', `${rupiah(g('hLc'))} · ${rupiah(g('hAngkur'))}`],
+      ]}
+      theoryTitle="Prinsip Material Take-Off fondasi blok equipment"
+      theoryRefs="SNI 2847:2019 · praktik estimasi kuantitas"
+      theory={<>
+        <p>
+          Fondasi equipment berupa blok masif tanpa pedestal, sehingga volume beton dihitung langsung dari
+          dimensi blok (L<sub>f</sub>·B<sub>f</sub>·H<sub>f</sub>) ditambah lapisan lantai kerja di bawahnya.
+          Tulangan berupa jaring dua arah; jumlah batang tiap arah diperoleh dari bentang dibagi spasi,
+          dikalikan panjang efektif, jumlah lapis, dan faktor waste, lalu dikonversi ke berat dengan
+          w = 0.006165·d² kg/m.
+        </p>
+        <p>
+          Anchor bolt yang menambatkan equipment dihitung beratnya dari luas penampang baut dikalikan panjang
+          (tanam + proyeksi) dan berat jenis baja. Total biaya adalah jumlah biaya beton, lantai kerja, besi,
+          dan anchor bolt terhadap harga satuannya masing-masing.
+        </p>
+      </>}
+      resultRows={[
+        { label: `Volume beton struktural (${Lf}×${Bf}×${Hf} m)`, value: `${volBeton.toFixed(3)} m³` },
+        { label: 'Volume lantai kerja', value: `${volLc.toFixed(3)} m³` },
+        { label: `Besi jaring (${nX}+${nZ} batang × ${lapis} lapis)`, value: `${rp(beratBesi)} kg` },
+        { label: `Anchor bolt (${nBolt} × ${beratBoltUnit.toFixed(2)} kg)`, value: `${rp(beratAngkur)} kg` },
+        { label: 'Harga beton', value: rupiah(hargaBeton) },
+        { label: 'Harga lantai kerja', value: rupiah(hargaLc) },
+        { label: 'Harga besi', value: rupiah(hargaBesi) },
+        { label: 'Harga anchor bolt', value: rupiah(hargaAngkur) },
+        { label: 'TOTAL BIAYA MATERIAL', value: rupiah(total), kind: 'total' },
+      ]}
+      note="Estimasi beton + tulangan + anchor bolt. Belum termasuk bekisting, grouting, dan upah."
+    />
+   </>
   );
 }
 
-export default function MtoPage({ pondasi, equip, pipe }) {
+export default function MtoPage({ pondasi, equip, pipe, project }) {
   const [sub, setSub] = useState('pondasi');
+  const proj = project || defProject;
   return (
     <div className="app">
       <header className="head">
@@ -372,9 +653,9 @@ export default function MtoPage({ pondasi, equip, pipe }) {
         <button className={sub === 'equipment' ? 'active' : ''} onClick={() => setSub('equipment')}>MTO Pondasi Equipment</button>
         <button className={sub === 'pipe' ? 'active' : ''} onClick={() => setSub('pipe')}>MTO Pipe Support</button>
       </div>
-      {sub === 'pondasi' && <MtoPondasi fd={pondasi} />}
-      {sub === 'equipment' && <MtoEquipment equip={equip} />}
-      {sub === 'pipe' && <MtoPipe pipe={pipe} />}
+      {sub === 'pondasi' && <MtoPondasi fd={pondasi} project={proj} />}
+      {sub === 'equipment' && <MtoEquipment equip={equip} project={proj} />}
+      {sub === 'pipe' && <MtoPipe pipe={pipe} project={proj} />}
     </div>
   );
 }

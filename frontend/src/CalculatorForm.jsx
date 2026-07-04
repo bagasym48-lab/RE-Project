@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import FoundationSketch from './FoundationSketch.jsx';
 import DesignPanel from './DesignPanel.jsx';
 import { LogoMark } from './Logo.jsx';
-import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
+import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -613,6 +613,24 @@ function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcNa
       <section className="rpt-section">
         <h2>6. Cek Stabilitas</h2>
 
+        <TheoryIntro title="Kapasitas dukung tanah & stabilitas fondasi dangkal" refs="Terzaghi (1943) · SNI 8460:2017">
+          <p>
+            Fondasi telapak meneruskan beban struktur ke tanah melalui tegangan kontak pada dasar
+            telapak. Kapasitas dukung batas (q<sub>u</sub>) diprediksi dengan persamaan Terzaghi yang
+            menjumlahkan kontribusi kohesi, beban surcharge di atas dasar fondasi, dan berat isi tanah,
+            masing-masing dikalikan faktor daya dukung (N<sub>c</sub>, N<sub>q</sub>, N<sub>γ</sub>)
+            yang merupakan fungsi sudut geser dalam (ϕ) serta faktor bentuk (ξ). Kapasitas izin
+            (q<sub>all</sub>) diperoleh dengan membagi q<sub>u</sub> oleh faktor keamanan.
+          </p>
+          <p>
+            Karena beban aksial disertai momen, distribusi tegangan di bawah telapak berbentuk trapesium;
+            tegangan maksimum (σ<sub>max</sub>) tiap kombinasi ASD tidak boleh melampaui q<sub>all</sub>.
+            Stabilitas fondasi ditinjau terhadap tiga moda keruntuhan: geser (gaya lateral ditahan gesekan
+            dasar), guling (momen guling ditahan momen berat sendiri), dan gaya angkat/uplift (gaya apung
+            ditahan berat fondasi + tanah di atasnya) — masing-masing terhadap angka keamanan minimum.
+          </p>
+        </TheoryIntro>
+
         <DerivGroup title="Daya dukung Terzaghi" refs="Terzaghi (1943) · faktor Krizek (1965)">
           <Step desc="Faktor kapasitas dukung (fungsi ϕ)" refs="Krizek (1965)"
             expr={<>N<sub>c</sub> / N<sub>q</sub> / N<sub>γ</sub></>}
@@ -661,6 +679,22 @@ function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcNa
 
       <section className="rpt-section">
         <h2>7. Desain Fondasi &amp; Penurunan</h2>
+
+        <TheoryIntro title="Desain struktur beton & penurunan fondasi" refs="SNI 2847:2019 · Steinbrenner (1934)">
+          <p>
+            Tekanan tanah reaktif menimbulkan momen dan gaya geser pada pelat telapak yang berperilaku
+            sebagai kantilever dari muka pedestal. Penulangan lentur direncanakan agar kapasitas momen
+            terreduksi (ϕM<sub>n</sub>) melampaui momen ultimit (M<sub>u</sub>) dari kombinasi LRFD, dengan
+            luas tulangan tidak kurang dari tulangan minimum susut/suhu. Ketahanan geser diperiksa pada dua
+            moda: geser satu arah (aksi balok, penampang kritis sejauh d dari muka) dan geser dua arah/pons
+            (penampang kritis d/2 dari muka pedestal).
+          </p>
+          <p>
+            Penurunan total merupakan penjumlahan penurunan segera/elastis (Steinbrenner) dan penurunan
+            konsolidasi primer serta sekunder lapisan tanah kohesif. Nilai total dibatasi terhadap penurunan
+            izin (25 mm) untuk menjamin kelayanan struktur.
+          </p>
+        </TheoryIntro>
 
         <DerivGroup title="Struktur beton (lentur, geser, tulangan)" refs="SNI 2847:2019">
           <Step desc={inf.lrfd_gov

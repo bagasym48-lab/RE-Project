@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
 import EquipmentFoundationSketch from './EquipmentFoundationSketch.jsx';
 import { compute, def } from './equipmentFoundationCalc.js';
-import { Step, DerivGroup, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
+import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
 
 const LABELS = {
   rasio_berat: 'Rasio berat fondasi ≥ 5× mesin (kN)',
@@ -295,6 +295,22 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
       <section className="rpt-section">
         <h2>6. Analisis Beban &amp; Cek Stabilitas</h2>
 
+        <TheoryIntro title="Fondasi blok equipment & beban dinamik" refs="Meyerhof (1963) · SNI 1726/1727 · Arya (1979)">
+          <p>
+            Fondasi mesin berupa blok masif tanpa pedestal; equipment duduk langsung di atas blok dan
+            gaya tarik/gesernya dipikul oleh anchor bolt. Bila rasio berat fondasi terhadap berat mesin
+            (W<sub>f</sub>/EO) memenuhi syarat minimum (≥ 5, RTS PHR), massa fondasi cukup meredam getaran
+            sehingga analisis dinamik terperinci tidak diperlukan dan cukup ditinjau secara pseudo-statik.
+          </p>
+          <p>
+            Kapasitas dukung tanah dihitung dengan metode Meyerhof (faktor daya dukung disertai faktor
+            bentuk dan kedalaman). Beban lingkungan mencakup angin (SNI 1727:2020/ASCE 7-16, dengan tekanan
+            minimum 770 N/m²) dan gempa (SNI 1726:2019, koefisien C<sub>s</sub> plus komponen vertikal
+            0.2·S<sub>DS</sub>). Seluruh kombinasi servis (LC 301–313) diperiksa terhadap tegangan kontak
+            (σ<sub>max</sub> ≤ q<sub>all</sub>, σ<sub>min</sub> ≥ 0) serta stabilitas geser, guling, dan buoyancy.
+          </p>
+        </TheoryIntro>
+
         <DerivGroup title="Berat fondasi & rasio (analisis dinamik diabaikan)" refs="RTS PHR-SP-CI-GG-002 · Arya (1979)">
           <Step desc="Berat blok fondasi" expr={<>W<sub>f</sub> = γ<sub>c</sub>·A<sub>f</sub>·H<sub>f</sub></>}
             sub={<>{f(s.gc)}·{f(i.Af, 3)}·{f(s.Hf)}</>} val={f(i.Wf)} unit="kN" />
@@ -357,6 +373,21 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
 
       <section className="rpt-section">
         <h2>7. Desain Fondasi &amp; Penurunan</h2>
+
+        <TheoryIntro title="Penurunan, penulangan & anchor bolt" refs="SNI 2847:2019 · ACI 318-14 Bab 17 · Braja M. Das">
+          <p>
+            Penurunan total blok fondasi dihitung sebagai jumlah penurunan segera (elastis) dan konsolidasi
+            (primer + sekunder), dengan lapisan tanah kohesif ditinjau kondisi terkonsolidasi normal (NC) atau
+            lebih (OC) berdasarkan tegangan prakonsolidasi. Pelat blok ditinjau sebagai kantilever akibat
+            tekanan tanah reaktif; tulangan lentur arah X dan Z direncanakan melampaui momen ultimit dengan
+            luas ≥ tulangan minimum.
+          </p>
+          <p>
+            Anchor bolt menyalurkan gaya tarik dan geser dari equipment ke beton. Kapasitasnya dievaluasi
+            menurut ACI 318-14 Bab 17 sebagai nilai minimum dari moda keruntuhan baja, jebol beton (breakout),
+            cabut (pullout), dan pecah tepi (blow-out), lalu diperiksa terhadap interaksi tarik–geser.
+          </p>
+        </TheoryIntro>
 
         <DerivGroup title="Penurunan (Braja Das)" refs="Steinbrenner · Braja M. Das (1988)">
           <Step desc="Penurunan segera" expr={<>S<sub>i</sub> = q<sub>0</sub>·B·<Frac n="(1−μ²)" d={<>E<sub>s</sub></>} />·I<sub>s</sub>·I<sub>f</sub>·4</>}

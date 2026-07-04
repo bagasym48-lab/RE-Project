@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
 import PipeSupportSketch from './PipeSupportSketch.jsx';
-import { Step, DerivGroup, Frac, FDDefs, ColumnForceDiagram, BeamForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
+import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, ColumnForceDiagram, BeamForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
 
 const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const PI = Math.PI;
@@ -357,6 +357,22 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
           [<>Panjang beam L</>, `${f(s.L)} m`],
           [<>Pile — Ø / panjang</>, `${f(s.Dpile)} m / ${f(s.Lpile)} m`],
         ]} />
+
+        <TheoryIntro title="Pemodelan pipe support & beban lateral" refs="ASCE 7-16 · SNI 1726/1727 · Braja M. Das">
+          <p>
+            Pipe support dimodelkan secara sederhana sebagai kolom kantilever tunggal yang memikul beban
+            pipa (kondisi kosong/operasi/test) di puncak, dengan beam sebagai balok sederhana berbeban
+            terpusat. Gaya lateral berasal dari angin (SNI 1727:2020/ASCE 7-16) dan gempa (SNI 1726:2019,
+            koefisien seismik C<sub>s</sub>). Gaya-gaya ini menimbulkan gaya aksial, momen di dasar kolom,
+            dan gaya geser yang diteruskan ke pile.
+          </p>
+          <p>
+            Kapasitas penampang pipa baja diperiksa terhadap interaksi aksial–momen (AISC 360-16 Bab H1),
+            kelayanan ditinjau dari defleksi beam dan displacement lateral kolom, sedangkan pile ditinjau
+            terhadap kapasitas dukung/tarik dan penurunan (Braja M. Das). Model ini bersifat edukatif —
+            STAAD/FEA tetap menjadi acuan desain sebenarnya.
+          </p>
+        </TheoryIntro>
 
         <DerivGroup title="Beban angin" refs="SNI 1727:2020 · ASCE 7-16">
           <Step desc="Tekanan kecepatan angin" refs="SNI 1727:2020 Pers. 26.10-1"

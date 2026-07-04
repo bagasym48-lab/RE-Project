@@ -376,6 +376,7 @@ table.logs select, table.logs input { border: 1px solid var(--line-strong); bord
   color: #fff; padding: 8px 14px; border-radius: 8px; }
 .rpt-verdict.ok { background: linear-gradient(135deg, #2f9e44, #1a9aa0); }
 .rpt-verdict.ng { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+.rpt-verdict.mto { background: var(--brand-grad-bar); }
 
 .rpt-section { margin-bottom: 14px; }
 .rpt-section h2 { font-size: 13.5px; color: var(--navy); margin: 0 0 8px; padding-bottom: 3px;
@@ -448,6 +449,14 @@ table.rpt-table tr { break-inside: avoid; }
 .rpt-ref { display: inline-block; font-size: 8.5px; font-weight: 700; color: #1f6fb2;
   background: #eef4fb; border: 1px solid #d5e3f2; border-radius: 4px; padding: 0 5px; margin-left: 6px;
   vertical-align: middle; letter-spacing: .01em; white-space: nowrap; }
+/* Pengantar teoritis (kalimat pengantar) sebelum rincian/hasil perhitungan */
+.rpt-theory { margin: 4px 0 12px; padding: 9px 12px 10px; break-inside: avoid;
+  background: #f4f8fb; border: 1px solid #dbe6f0; border-left: 3px solid var(--blue);
+  border-radius: 8px; }
+.rpt-theory .rt-body { font-size: 9.5px; color: #33404d; line-height: 1.55; text-align: justify; }
+.rpt-theory .rt-body p { margin: 0 0 5px; }
+.rpt-theory .rt-body p:last-child { margin-bottom: 0; }
+
 .deriv-group { margin: 0 0 9px; break-inside: avoid; }
 .dg-title { font-size: 10.5px; color: var(--navy); margin: 8px 0 4px; font-weight: 700;
   border-left: 3px solid #1f6fb2; padding-left: 7px; break-after: avoid; }
@@ -749,7 +758,7 @@ ul.toc-sub li { font-size: 10.5px; color: #445; padding: 2px 0; }
   html, body { background: #fff !important; }
   body { font-size: 10.5px; color: #111; }
   /* sembunyikan seluruh UI aplikasi (termasuk sidebar dashboard), tampilkan hanya laporan */
-  .ds-side, .civil-head, .kalk-subtabs, .topnav, .app > .head, .app > .layout { display: none !important; }
+  .ds-side, .civil-head, .kalk-subtabs, .mto-subtabs, .topnav, .app > .head, .app > .layout { display: none !important; }
   .ds, .ds-main, .civil, .civil-body, .app { display: block !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
   .report-sheet { display: block !important; }
   /* paksa warna (badge & gradien sketsa) ikut tercetak */
