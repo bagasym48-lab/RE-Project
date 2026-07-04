@@ -36,10 +36,14 @@ uvicorn main:app --reload --port 8000   # API at http://localhost:8000/docs
 ```
 
 There is **no test framework and no linter**. The validation harness is the `__main__` block
-in `foundation_calc.py`: it runs the reference document's load cases through `run_full_check`
-and prints each check's ratio. **It must print `overall_ok: True`** — that asserts the calc
-still matches the document (FEED Pipa GFW, SNI 2847:2019) it was calibrated against. Run it
-after any change to the calculation logic or its constants.
+in `foundation_calc.py`. It asserts three things and **must print `overall_ok: True` (twice)
+and end with `SEMUA COCOK DENGAN DOKUMEN`**: (1) the legacy manual-load-case path still passes
+(old calibration untouched), (2) `generate_combinations` reproduces the reference document's
+"Kombinasi Beban ASD/LRFD pada Footing" tables row-by-row (±0.006 kN/kNm, plus the max/min
+recap with the exact governing LC numbers), and (3) the new basic-loads path is overall AMAN
+for the document case. Run it after any change to the calculation logic, the combination
+specs, or their constants. Reference doc: FEED Pipa GFW pondasi dangkal Type-1C
+(DURI-RDNL05GS40N-CIV-CAL-PHR-2001-00, `pondasi dangkal 1.pdf` — first 14 pages).
 
 The frontend does not exist yet; scaffold it with `npm create vite@latest frontend -- --template react`,
 then `npm install @supabase/supabase-js` and copy in the snippet (see README).
@@ -48,12 +52,31 @@ then `npm install @supabase/supabase-js` and copy in the snippet (see README).
 
 ### Calculation core (`backend/foundation_calc.py`)
 Pure functions, no I/O, every result is a JSON-ready dict. Flow funnels through one
-orchestrator, **`run_full_check(fd, soil, lcs)`** — the single entry point the API calls:
+orchestrator, **`run_full_check(fd, soil, lcs=None, loads=None, Sds=0.0)`** — the single
+entry point the API calls. Two input modes:
+
+- **`loads` + `Sds` (the UI path)**: the user enters only **basic loads** (`KNOWN_LOADS`:
+  DL, PE/PO/PT, QE/QO/QT, TE, TF, LL, LR, CDL, CLL, I, H, B, WX, WZ, VX, VZ — each a
+  {FY, FX, FZ, MX, MZ} support-reaction dict). `generate_combinations` builds **61 ASD
+  combos (LC101–161)** and **58 LRFD combos (LC501–558)** by linear superposition, with
+  the doc's exact factor specs (`_asd_specs`/`_lrfd_specs`; SDS tokens `A14`/`A105`/`M14`/
+  `B2`/`B2M`; seismic 100/30 sign patterns incl. the doc's odd LC149/150 order). The result
+  gains a `combos` block (`asd`, `lrfd`, `maxmin_asd`, `maxmin_lrfd`, `Sds`) that the
+  report renders verbatim (formula strings like `1.068DL+…+0.91VX+0.27VZ`).
+- **`lcs` (legacy)**: manual ASD combos; behavior byte-identical to the old calculator
+  (concrete checks fall back to `qu_f = 1.4·qall`). Old saved designs still work.
 
 1. `terzaghi_qall` → allowable bearing capacity `qall` from soil params.
-2. `cek` → the 8 structural/stability checks, evaluated against `qall`.
-3. `settlement` → `Si + Sc1 + Sc2`, fed `q0` (= worst-case `sigma_max`) from step 2's `info`.
+2. `cek` → the 8 structural/stability checks. **ASD combos** drive `daya_dukung` (max
+   `sigma_max` scan), `stab_geser` (min-SF scan), `guling`, `uplift`; **LRFD combos** drive
+   the concrete checks via `qu_f = σu,max` over LC501–558 (`info.lrfd_gov` = governing LC).
+3. `settlement` → `Si + Sc1 + Sc2`, fed `q0` (= worst-case ASD `sigma_max`) from step 2's `info`.
 4. `overall_ok` = all 8 checks ok **AND** settlement ok.
+
+Known doc quirk (encoded in the harness, don't "fix"): the reference doc's ASD tables use
+(1+0.14·SDS)=1.068 ⇒ SDS≈0.486, but its LRFD tables round to 1.3/0.8 ⇒ SDS=0.5. The engine
+is self-consistent (exact formulas of the SDS input); the harness asserts ASD at SDS=0.4857
+and LRFD at SDS=0.5.
 
 Every check returns the **same contract**: `dict(demand, kapasitas, rasio, ok, [lc])`. The
 frontend table and `overall_ok` both rely on this shape — preserve it when adding checks.
@@ -92,19 +115,26 @@ The code sprinkles `/1000` conversions accordingly. When adding terms, check whi
 system the surrounding variables are in.
 
 ### The schema is duplicated in three places (keep in sync)
-The input parameters for `Foundation`, `Soil`, and `LoadCase` are defined **three times**:
+The input parameters for `Foundation`, `Soil`, and the loads are defined **three times**:
 
-1. `backend/foundation_calc.py` — `@dataclass` definitions (source of truth for the math).
-2. `backend/main.py` — Pydantic `*In` models (`FoundationIn`, `SoilIn`, `LoadCaseIn`) with
-   matching field names **and default values**.
-3. `frontend-snippet/CalculatorForm.jsx` — `defaultFoundation` / `defaultSoil` / `defaultLCs`.
+1. `backend/foundation_calc.py` — `@dataclass` definitions + `KNOWN_LOADS` (source of truth).
+2. `backend/main.py` — Pydantic `*In` models (`FoundationIn`, `SoilIn`, `BasicLoadIn`,
+   legacy `LoadCaseIn`) with matching field names **and default values**.
+3. `frontend/src/CalculatorForm.jsx` — `defaultFoundation` / `defaultSoil` / `defaultLoads`
+   (+ `defaultSds`, `LOAD_LABELS`, `LOAD_GROUPS` for the input table). Changing SDS in the
+   form **auto-scales the VX/VZ rows proportionally** (V = Cs·W, Cs ∝ SDS) via `onSdsChange`
+   with a last-valid-SDS anchor (`sdsAnchor`) — loading a saved design resets the anchor so
+   loaded loads are never rescaled.
 
-Adding or renaming a parameter means editing all three. The API layer just unpacks Pydantic
-into the dataclasses (`Foundation(**req.foundation.model_dump())`), so names must match exactly.
+Adding or renaming a parameter (or a basic-load type) means editing all three. The API layer
+just unpacks Pydantic into the dataclasses (`Foundation(**req.foundation.model_dump())`), so
+names must match exactly. `DesignPanel` stores the loads as `load_cases: { loads, Sds }`
+(jsonb) — `loadDesign` in CalculatorForm accepts both this and the legacy array shape.
 
 ### API (`backend/main.py`)
 Thin wrapper: `POST /calculate` validates the request, builds the dataclasses, calls
-`run_full_check`, returns the dict. `GET /health` for liveness. CORS origins come from the
+`run_full_check`, returns the dict. Dual-mode body: `{foundation, soil, Sds, loads}` (new —
+unknown load keys → 400) or `{foundation, soil, load_cases}` (legacy). `GET /health` for liveness. CORS origins come from the
 `CORS_ORIGINS` env var (comma-separated). `get_current_user` is a **stub** — it only checks
 for a header's presence and `/calculate` is effectively public; real Supabase JWT verification
 (against JWKS, via the already-listed `python-jose`) is a TODO.

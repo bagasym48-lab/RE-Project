@@ -97,6 +97,17 @@ table.lc input { min-width: 62px; }
 .btn { padding: 8px 14px; font-size: 13px; }
 
 .err { color: var(--ng); font-size: 13px; margin: 0; }
+.err p { margin: 0 0 6px; }
+.calc-status { margin: 0; font-size: 12.5px; color: var(--muted); font-style: italic; }
+
+/* Tabel beban dasar — kombinasi dibangkitkan otomatis oleh backend */
+.loads-note { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
+table.loads-tbl td.ld-name { white-space: nowrap; padding-right: 8px; }
+table.loads-tbl td.ld-name small { color: var(--muted); font-size: 10.5px; }
+table.loads-tbl tr.ld-group td {
+  padding: 8px 4px 2px; font-weight: 700; font-size: 11px; color: var(--navy);
+  text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line);
+}
 
 .verdict { text-align: center; font-weight: 800; font-size: 17px; letter-spacing: .05em; padding: 10px; border-radius: 9px; margin-bottom: 10px; color: #fff; box-shadow: var(--shadow-sm); }
 .verdict.ok { background: linear-gradient(135deg, #2f9e44, #1a9aa0); }
@@ -378,6 +389,15 @@ table.logs select, table.logs input { border: 1px solid var(--line-strong); bord
 .rpt-kv-item b { color: #111; font-variant-numeric: tabular-nums; }
 
 table.rpt-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 4px; break-inside: avoid; }
+/* Tabel kombinasi beban (ASD 61 + LRFD 58 baris) — font kecil agar muat A4;
+   boleh terpotong antar halaman (break-inside auto, header diulang browser). */
+table.rpt-table.rpt-combo { font-size: 7.6px; table-layout: fixed; break-inside: auto; }
+table.rpt-table.rpt-combo th, table.rpt-table.rpt-combo td { padding: 1.5px 3px; }
+table.rpt-table.rpt-combo th:first-child { width: 24px; }
+table.rpt-table.rpt-combo th:nth-child(n+3) { width: 44px; }
+table.rpt-table.rpt-combo td.frm { word-break: break-all; font-family: ui-monospace, Consolas, monospace; font-size: 7px; }
+table.rpt-table.rpt-combo td.num { white-space: nowrap; }
+table.rpt-table.rpt-combo tr.mm td { font-weight: 700; background: #eef3f8; }
 table.rpt-table th { background: #eef3f8; text-align: left; font-weight: 700; color: var(--navy);
   border: 1px solid var(--line-strong); padding: 4px 6px; }
 table.rpt-table td { border: 1px solid var(--line); padding: 3px 6px; }

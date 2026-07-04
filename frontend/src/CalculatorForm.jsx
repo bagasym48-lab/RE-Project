@@ -1,7 +1,10 @@
 // CalculatorForm.jsx — form lengkap kalkulator pondasi dangkal.
-// Mengirim POST /calculate ke backend FastAPI dan menampilkan hasil + sketsa.
+// User hanya memasukkan BEBAN DASAR (reaksi tumpuan per beban primer) + SDS;
+// backend membangkitkan kombinasi ASD LC101–161 & LRFD LC501–558 otomatis
+// (dokumen FEED GFW, ASCE 7-16 Ps. 2.4.5 & 2.3.6) lalu mengecek semuanya.
+// Hasil dihitung otomatis (debounce) seperti kalkulator lain — tanpa tombol.
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import FoundationSketch from './FoundationSketch.jsx';
 import DesignPanel from './DesignPanel.jsx';
 import { LogoMark } from './Logo.jsx';
@@ -22,12 +25,46 @@ const defaultSoil = {
   Po: 9314.6, dP: 466.1, h1: 1.5, h2: 3.0,
   I1: 0.363, I2: 0.048, If: 0.53,
 };
-const defaultLCs = [
-  { nama: 'LC123', FY: 60.49, FX: -7.88, FZ: -5.32, MX: -14.23, MZ: 20.87 },
-  { nama: 'LC121', FY: 56.64, FX: -6.78, FZ: -5.65, MX: -15.16, MZ: 18.31 },
-  { nama: 'LC105', FY: 37.08, FX: 0, FZ: 0.85, MX: 2.20, MZ: 0 },
-  { nama: 'LC114', FY: 22.25, FX: -0.12, FZ: 0, MX: 0, MZ: 0.22 },
+
+// ---- Beban dasar (notasi dokumen) --------------------------------------
+// Reaksi tumpuan STAAD per beban primer (kN, kNm). Kombinasi dibangkitkan
+// otomatis oleh backend — user TIDAK memasukkan load combination lagi.
+const zeroLoad = { FY: 0, FX: 0, FZ: 0, MX: 0, MZ: 0 };
+export const defaultLoads = {
+  DL: { ...zeroLoad, FY: 29.611 },
+  PE: { ...zeroLoad, FY: 7.47 },
+  PO: { ...zeroLoad, FY: 27.03 },
+  PT: { ...zeroLoad, FY: 28.93 },
+  QE: { ...zeroLoad }, QO: { ...zeroLoad }, QT: { ...zeroLoad },
+  TE: { ...zeroLoad, FZ: -4.80, MX: -12.96 },
+  TF: { ...zeroLoad, FX: -6.78, MZ: 18.306 },
+  LL: { ...zeroLoad }, LR: { ...zeroLoad },
+  CDL: { ...zeroLoad }, CLL: { ...zeroLoad },
+  I: { ...zeroLoad }, H: { ...zeroLoad }, B: { ...zeroLoad },
+  WX: { ...zeroLoad, FX: -0.1917, MZ: 0.3733 },
+  WZ: { ...zeroLoad, FZ: -1.4117, MX: -3.6667 },
+  VX: { ...zeroLoad, FX: -0.7054, MZ: 1.4462 },
+  VZ: { ...zeroLoad, FZ: -0.7054, MX: -1.4462 },
+};
+export const defaultSds = 0.486; // (1+0.14·SDS) = 1.068 — kalibrasi tabel dokumen
+
+const LOAD_LABELS = {
+  DL: 'Beban mati struktur', PE: 'Pipa — empty', PO: 'Pipa — operasi', PT: 'Pipa — test',
+  QE: 'Beban tambahan — empty', QO: 'Beban tambahan — operasi', QT: 'Beban tambahan — test',
+  TE: 'Termal ekspansi', TF: 'Termal friksi',
+  LL: 'Beban hidup', LR: 'Beban hidup atap',
+  CDL: 'Cable tray — mati', CLL: 'Cable tray — hidup',
+  I: 'Impact', H: 'Tekanan tanah lateral', B: 'Buoyancy (apung)',
+  WX: 'Angin arah X', WZ: 'Angin arah Z', VX: 'Gempa arah X', VZ: 'Gempa arah Z',
+};
+const LOAD_GROUPS = [
+  ['Gravitasi / vertikal', ['DL', 'PE', 'PO', 'PT', 'QE', 'QO', 'QT']],
+  ['Termal pipa', ['TE', 'TF']],
+  ['Hidup & lainnya', ['LL', 'LR', 'CDL', 'CLL', 'I', 'H', 'B']],
+  ['Angin & gempa (lateral)', ['WX', 'WZ', 'VX', 'VZ']],
 ];
+const COMP_COLS = ['FY', 'FX', 'FZ', 'MX', 'MZ'];
+const COMP6 = ['FX', 'FY', 'FZ', 'MX', 'MY', 'MZ'];
 
 const DIMENSI = [
   ['B', 'Bf — lebar footing'], ['L', 'Lf — panjang footing'],
@@ -61,7 +98,6 @@ const LABELS = {
   tulangan_min: 'Tulangan minimum', stab_geser: 'Stabilitas geser',
   guling: 'Guling', uplift: 'Gaya angkat',
 };
-const LC_COLS = ['nama', 'FY', 'FX', 'FZ', 'MX', 'MZ'];
 
 function Field({ k, label, value, onChange, ...rest }) {
   return (
@@ -83,10 +119,12 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
   const setProject = setProjectProp ?? setProjLocal;
   const updProject = (k, v) => setProject((p) => ({ ...p, [k]: v }));
   const [soil, setSoil] = useState(defaultSoil);
-  const [lcs, setLcs] = useState(defaultLCs);
+  const [loads, setLoads] = useState(defaultLoads);
+  const [Sds, setSds] = useState(defaultSds);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const abortRef = useRef(null);
   // Nama untuk kolom tanda tangan laporan. "Dihitung oleh" otomatis terisi nama
   // user yang login (boleh diubah); "Diperiksa oleh" (QC) diisi manual.
   const [engineerName, setEngineerName] = useState('');
@@ -99,12 +137,33 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
   const upd = (setter) => (k, v) => setter((s) => ({ ...s, [k]: v }));
   const updFd = upd(setFd);
   const updSoil = upd(setSoil);
+  const updLoad = (name, c, v) =>
+    setLoads((o) => ({ ...o, [name]: { ...o[name], [c]: v } }));
 
-  const updLc = (i, k, v) => setLcs((arr) => arr.map((lc, idx) => (idx === i ? { ...lc, [k]: v } : lc)));
-  const addLc = () => setLcs((arr) => [...arr, { nama: `LC${arr.length + 1}`, FY: 0, FX: 0, FZ: 0, MX: 0, MZ: 0 }]);
-  const delLc = (i) => setLcs((arr) => (arr.length > 1 ? arr.filter((_, idx) => idx !== i) : arr));
+  // Beban gempa proporsional SDS: V = Cs·W dengan Cs = SDS/(R/Ie) ∝ SDS,
+  // sehingga mengubah SDS otomatis menskalakan seluruh komponen VX & VZ
+  // (gaya DAN momen ikut, karena M = gaya × lengan). Anchor = SDS valid
+  // terakhir, supaya mengetik bertahap/menghapus field tidak merusak skala.
+  const sdsAnchor = useRef(Number(defaultSds));
+  const scaleRow = (row, r) => Object.fromEntries(
+    COMP_COLS.map((c) => [c, +(((Number(row[c]) || 0) * r).toFixed(4))])
+  );
+  const onSdsChange = (v) => {
+    setSds(v);
+    const nv = Number(v);
+    if (!Number.isFinite(nv) || nv <= 0) return;   // tunggu angka valid
+    const ov = sdsAnchor.current;
+    if (Number.isFinite(ov) && ov > 0 && nv !== ov) {
+      const r = nv / ov;
+      setLoads((o) => ({ ...o, VX: scaleRow(o.VX, r), VZ: scaleRow(o.VZ, r) }));
+    }
+    sdsAnchor.current = nv;
+  };
 
   async function compute() {
+    abortRef.current?.abort();
+    const ctl = new AbortController();
+    abortRef.current = ctl;
     setLoading(true);
     setError(null);
     try {
@@ -113,16 +172,16 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
       const payload = {
         foundation: { ...numObj(fd), n_pedestal: parseInt(fd.n_pedestal, 10) || 1 },
         soil: numObj(soil),
-        load_cases: lcs.map((lc) => ({
-          nama: String(lc.nama || ''),
-          FY: Number(lc.FY) || 0, FX: Number(lc.FX) || 0, FZ: Number(lc.FZ) || 0,
-          MX: Number(lc.MX) || 0, MZ: Number(lc.MZ) || 0,
-        })),
+        Sds: Number(Sds) || 0,
+        loads: Object.fromEntries(
+          Object.entries(loads).map(([name, o]) => [name, numObj(o)])
+        ),
       };
       const res = await fetch(`${API}/calculate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: ctl.signal,
       });
       if (!res.ok) {
         let msg = `HTTP ${res.status}`;
@@ -134,26 +193,50 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
       }
       setResult(await res.json());
     } catch (e) {
+      if (e.name === 'AbortError') return; // diganti permintaan yang lebih baru
       setError(e.message);
       setResult(null);
     } finally {
-      setLoading(false);
+      if (abortRef.current === ctl) setLoading(false);
     }
   }
+
+  // Auto-hitung (debounce) — seperti kalkulator lain, tanpa tombol "Hitung".
+  useEffect(() => {
+    const t = setTimeout(compute, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fd, soil, loads, Sds]);
 
   function loadDesign(d) {
     if (d.foundation) setFd(d.foundation);
     if (d.soil) setSoil(d.soil);
-    if (d.load_cases) setLcs(d.load_cases);
+    const lc = d.load_cases;
+    if (lc && !Array.isArray(lc) && lc.loads) {
+      // Format baru: { loads, Sds }
+      setLoads({ ...defaultLoads, ...Object.fromEntries(
+        Object.entries(lc.loads).map(([k, o]) => [k, { ...zeroLoad, ...o }])
+      ) });
+      if (lc.Sds != null) {
+        setSds(lc.Sds);
+        // Anchor ikut SDS desain — beban VX/VZ yang dimuat sudah pada SDS ini,
+        // jadi TIDAK boleh terskala saat load.
+        const sv = Number(lc.Sds);
+        if (Number.isFinite(sv) && sv > 0) sdsAnchor.current = sv;
+      }
+      setError(null);
+    } else if (Array.isArray(lc)) {
+      // Desain lama (load case manual) — beban dasar tidak tersedia.
+      setError('Desain lama memakai load case manual; beban dasar memakai nilai saat ini dan hasil dihitung ulang otomatis.');
+    }
     setResult(d.result || null);
-    setError(null);
   }
 
   return (
     <div className="app">
       <header className="head">
         <h1>Kalkulasi Pondasi Dangkal</h1>
-        <p className="sub">Telapak (footing) · SNI 2847:2019 · Terzaghi-Krizek · Steinbrenner</p>
+        <p className="sub">Telapak (footing) · SNI 2847:2019 · Terzaghi-Krizek · Steinbrenner · Kombinasi ASD/LRFD otomatis (ASCE 7-16)</p>
         <p className="warn">⚠️ Diprakarsai oleh Bagas, Aldhico, Aji, Faizi - Dept. Civil.</p>
       </header>
 
@@ -193,34 +276,47 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
           </fieldset>
 
           <fieldset className="group">
-            <legend>Load case — reaksi tumpuan ASD (kN, kNm)</legend>
+            <legend>Beban dasar — reaksi tumpuan per beban primer (kN, kNm)</legend>
+            <p className="loads-note">
+              Kombinasi beban <b>tidak perlu diinput</b> — 61 kombinasi ASD (LC101–161) dan
+              58 LRFD (LC501–558) dibangkitkan otomatis sesuai dokumen (ASCE 7-16).
+              Isi hanya beban yang ada; baris lain biarkan 0. Mengubah S<sub>DS</sub> otomatis
+              <b> menskalakan beban gempa VX &amp; VZ</b> secara proporsional (V = Cs·W, Cs ∝ S<sub>DS</sub>).
+            </p>
+            <div className="fields" style={{ marginBottom: 8 }}>
+              <Field k="Sds" label="SDS gempa (g) — faktor vertikal & skala VX/VZ" value={Sds}
+                onChange={(k, v) => onSdsChange(v)} type="number" step="any" />
+            </div>
             <div className="lc-wrap">
-              <table className="lc">
+              <table className="lc loads-tbl">
                 <thead>
-                  <tr><th>Nama</th><th>FY</th><th>FX</th><th>FZ</th><th>MX</th><th>MZ</th><th></th></tr>
+                  <tr><th>Beban</th><th>FY</th><th>FX</th><th>FZ</th><th>MX</th><th>MZ</th></tr>
                 </thead>
                 <tbody>
-                  {lcs.map((lc, i) => (
-                    <tr key={i}>
-                      {LC_COLS.map((c) => (
-                        <td key={c}>
-                          <input
-                            value={lc[c]}
-                            onChange={(e) => updLc(i, c, e.target.value)}
-                            type={c === 'nama' ? 'text' : 'number'}
-                            step="any"
-                          />
-                        </td>
-                      ))}
-                      <td>
-                        <button className="del" onClick={() => delLc(i)} disabled={lcs.length <= 1} title="hapus baris">✕</button>
-                      </td>
-                    </tr>
+                  {LOAD_GROUPS.map(([gTitle, names]) => (
+                    [
+                      <tr key={gTitle} className="ld-group"><td colSpan={6}>{gTitle}</td></tr>,
+                      ...names.map((name) => (
+                        <tr key={name}>
+                          <td className="ld-name" title={LOAD_LABELS[name]}>
+                            <b>{name}</b> <small>{LOAD_LABELS[name]}</small>
+                          </td>
+                          {COMP_COLS.map((c) => (
+                            <td key={c}>
+                              <input
+                                value={loads[name][c]}
+                                onChange={(e) => updLoad(name, c, e.target.value)}
+                                type="number" step="any"
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      )),
+                    ]
                   ))}
                 </tbody>
               </table>
             </div>
-            <button className="add" onClick={addLc}>+ tambah load case</button>
           </fieldset>
         </section>
 
@@ -229,11 +325,13 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
             <FoundationSketch fd={fd} />
           </div>
 
-          <button className="calc" onClick={compute} disabled={loading}>
-            {loading ? 'Menghitung…' : 'Hitung & cek keamanan'}
-          </button>
-
-          {error && <p className="err">Error: {error}</p>}
+          {loading && <p className="calc-status">Menghitung…</p>}
+          {error && (
+            <div className="err">
+              <p>Error: {error}</p>
+              <button className="add" onClick={compute}>Coba hitung ulang</button>
+            </div>
+          )}
 
           {result && (
             <div className="card result">
@@ -248,6 +346,12 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
                 <p className="terz">
                   ξc/ξq/ξγ = {result.terzaghi.xi_c.toFixed(2)}/{result.terzaghi.xi_q.toFixed(2)}/{result.terzaghi.xi_g.toFixed(2)}
                   <span className="lc-tag"> · ξc, ξq otomatis dari B/L</span>
+                </p>
+              )}
+              {result.combos && (
+                <p className="terz">
+                  Kombinasi otomatis: {result.combos.asd.length} ASD (LC101–161) + {result.combos.lrfd.length} LRFD (LC501–558)
+                  <span className="lc-tag"> · SDS = {Number(result.combos.Sds).toFixed(3)}</span>
                 </p>
               )}
               <table className="res">
@@ -291,23 +395,56 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
               🖨️ Cetak / Simpan PDF (A4)
             </button>
           )}
-          <DesignPanel userId={userId} fd={fd} soil={soil} lcs={lcs} result={result} onLoad={loadDesign} />
+          <DesignPanel userId={userId} fd={fd} soil={soil} lcs={{ loads, Sds }} result={result} onLoad={loadDesign} />
         </aside>
       </div>
 
-      {result && <ReportSheet fd={fd} soil={soil} lcs={lcs} result={result} project={project} engineerName={engineerName} qcName={qcName} />}
+      {result && <ReportSheet fd={fd} soil={soil} loads={loads} Sds={Sds} result={result} project={project} engineerName={engineerName} qcName={qcName} />}
     </div>
+  );
+}
+
+// Tabel kombinasi utk laporan: LC | formula | FX FY FZ MX MY MZ (+ maks/min).
+function ComboTable({ rows, mm }) {
+  const f3 = (x) => (Number.isFinite(x) ? x.toFixed(3) : '—');
+  return (
+    <table className="rpt-table rpt-combo">
+      <thead>
+        <tr>
+          <th>LC</th><th>Kombinasi Beban</th>
+          <th>F<sub>X</sub> (kN)</th><th>F<sub>Y</sub> (kN)</th><th>F<sub>Z</sub> (kN)</th>
+          <th>M<sub>X</sub> (kNm)</th><th>M<sub>Y</sub> (kNm)</th><th>M<sub>Z</sub> (kNm)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.lc}>
+            <td>{r.lc}</td>
+            <td className="frm">{r.formula}</td>
+            {COMP6.map((c) => <td key={c} className="num">{f3(r[c])}</td>)}
+          </tr>
+        ))}
+        {mm && ([
+          <tr key="mx" className="mm"><td /><td>NILAI MAKSIMUM</td>{COMP6.map((c) => <td key={c} className="num">{f3(mm[c].max)}</td>)}</tr>,
+          <tr key="mxl" className="mm"><td /><td>LC MAKSIMUM</td>{COMP6.map((c) => <td key={c} className="num">{mm[c].lc_max}</td>)}</tr>,
+          <tr key="mn" className="mm"><td /><td>NILAI MINIMUM</td>{COMP6.map((c) => <td key={c} className="num">{f3(mm[c].min)}</td>)}</tr>,
+          <tr key="mnl" className="mm"><td /><td>LC MINIMUM</td>{COMP6.map((c) => <td key={c} className="num">{mm[c].lc_min}</td>)}</tr>,
+        ])}
+      </tbody>
+    </table>
   );
 }
 
 // ReportSheet — laporan A4 untuk dicetak/disimpan PDF. Disembunyikan di layar
 // (display:none), hanya tampil di @media print. Lihat .report-sheet di index.css.
-function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
+function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcName }) {
   const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   // Nilai turunan untuk substitusi rumus (geometri saja; hasil fisika dari backend).
   const nz = (v) => (Number.isFinite(+v) ? +v : 0);
   const B = nz(fd.B), L = nz(fd.L), h = nz(fd.h), Df = nz(fd.Df);
   const tz = result.terzaghi, ck = result.checks, inf = result.info, se = result.settlement;
+  const cmb = result.combos || null;
+  const asdRows = cmb ? cmb.asd : [];
   const Af = (B / 1000) * (L / 1000);
   const Sx = (B / 1000) * (L / 1000) ** 2 / 6;
   const Sz = (L / 1000) * (B / 1000) ** 2 / 6;
@@ -318,10 +455,14 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
   const xOff = nped >= 2 ? nz(fd.s_ped) / 2 : 0;
   const Lll = Math.max(0.5 * B - xOff, 0);         // kantilever lentur (mm)
   const aCant = Lll / 1000;                          // m
-  const govBC = lcs.find((l) => String(l.nama) === String(ck.daya_dukung.lc)) || {};
+  const findLC = (nama) => asdRows.find((r) => `LC${r.lc}` === String(nama)) || {};
+  const govBC = findLC(ck.daya_dukung.lc);
   const sMax = ck.daya_dukung.demand;
   const sMin = nz(govBC.FY) / Af - Math.abs(nz(govBC.MX)) / Sx - Math.abs(nz(govBC.MZ)) / Sz;
-  const govSh = lcs.find((l) => String(l.nama) === String(ck.stab_geser.lc)) || {};
+  const govSh = findLC(ck.stab_geser.lc);
+  // Baris beban dasar yang terisi (≠0) untuk tabel §4.1.
+  const loadRows = Object.entries(loads)
+    .filter(([, o]) => COMP_COLS.some((c) => nz(o[c]) !== 0));
   return (
     <div className="report-sheet">
       <FDDefs />
@@ -330,7 +471,7 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
         ['1. Umum', ['1.1 Kode & Standar', '1.2 Material & Berat Satuan', '1.3 Kondisi Tanah & Faktor Keamanan']],
         ['2. Data Input', ['2.1 Dimensi Pondasi', '2.2 Material & Faktor', '2.3 Parameter Tanah']],
         ['3. Gambar Sketsa', []],
-        ['4. Kombinasi Beban', ['4.1 Load Case (reaksi ASD)']],
+        ['4. Kombinasi Beban', ['4.1 Beban Dasar', '4.2 Kombinasi ASD pada Footing (LC101–161)', '4.3 Kombinasi LRFD pada Footing (LC501–558)']],
         ['5. Data Fondasi', ['5.1 Data Footing & Penampang', '5.2 Data Pedestal']],
         ['6. Cek Stabilitas', ['Daya dukung Terzaghi', 'Tegangan kontak', 'Geser, guling, uplift']],
         ['7. Desain Fondasi & Penurunan', ['Struktur beton', 'Penurunan']],
@@ -355,6 +496,7 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
         <h3>1.1 Kode &amp; Standar</h3>
         <ItemsTable head={['Item', 'Deskripsi']} rows={[
           ['Metode desain', 'ASD (stabilitas & daya dukung) + LRFD (penulangan)'],
+          ['Kombinasi beban', 'ASCE 7-16 Ps. 2.4.5 & 2.3.6 — ASD LC101–161 · LRFD LC501–558 (otomatis dari beban dasar)'],
           ['Daya dukung tanah', 'Terzaghi (1943) · faktor bentuk Krizek (1965)'],
           ['Beton bertulang', 'SNI 2847:2019 (ACI 318-14)'],
           ['Stabilitas', 'SNI 8460:2017 (geoteknik)'],
@@ -378,6 +520,7 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
           ['SF geser / guling / uplift', '1.5 / 2.0 / 1.5'],
           [<>Koef. gesek dasar μ</>, `${f(fd.mu_fric)}`],
           [<>Faktor bentuk ξ<sub>c</sub> / ξ<sub>q</sub> / ξ<sub>γ</sub></>, `${f(tz.xi_c)} / ${f(tz.xi_q)} / ${f(tz.xi_g)}`],
+          [<>Parameter gempa S<sub>DS</sub></>, `${f(Sds, 3)} g`],
         ]} />
       </section>
 
@@ -412,22 +555,39 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
 
       <section className="rpt-section">
         <h2>4. Kombinasi Beban</h2>
-        <p className="rpt-note2">Beban = reaksi tumpuan ASD dari STAAD ({lcs.length} load case). Daya dukung dievaluasi per load case; yang menentukan adalah σmax tertinggi.</p>
-        <h3>4.1 Load Case — reaksi tumpuan ASD (kN, kNm)</h3>
+        <p className="rpt-note2">
+          Kombinasi pembebanan dibangkitkan <b>otomatis</b> dari beban dasar sesuai dokumen referensi
+          (ASCE 7-16 Ps. 2.4.5 &amp; 2.3.6; S<sub>DS</sub> = {f(cmb ? cmb.Sds : Sds, 3)} g).
+          Kombinasi tanpa faktor (ASD, LC101–161) dipakai untuk pemeriksaan stabilitas fondasi,
+          kapasitas daya dukung tanah, dan penurunan; kombinasi terfaktor (LRFD, LC501–558) untuk
+          desain tulangan beton. Faktor gempa vertikal: ASD (1+0.14S<sub>DS</sub>) · LRFD (1.2+0.2S<sub>DS</sub>);
+          arah ortogonal 100/30.
+        </p>
+        <h3>4.1 Beban Dasar — reaksi tumpuan per beban primer (kN, kNm)</h3>
         <table className="rpt-table">
           <thead>
-            <tr><th>Nama</th><th>FY</th><th>FX</th><th>FZ</th><th>MX</th><th>MZ</th></tr>
+            <tr><th>Beban</th><th>Deskripsi</th><th>FY</th><th>FX</th><th>FZ</th><th>MX</th><th>MZ</th></tr>
           </thead>
           <tbody>
-            {lcs.map((lc, i) => (
-              <tr key={i}>
-                <td>{lc.nama}</td>
-                <td className="num">{lc.FY}</td><td className="num">{lc.FX}</td><td className="num">{lc.FZ}</td>
-                <td className="num">{lc.MX}</td><td className="num">{lc.MZ}</td>
+            {loadRows.map(([name, o]) => (
+              <tr key={name}>
+                <td><b>{name}</b></td>
+                <td>{LOAD_LABELS[name]}</td>
+                {COMP_COLS.map((c) => <td key={c} className="num">{f(nz(o[c]), 3)}</td>)}
               </tr>
             ))}
           </tbody>
         </table>
+        <p className="rpt-note2">Beban dasar bernilai nol tidak ditampilkan. Momen otomatis terbawa
+          superposisi linear pada setiap kombinasi (M = gaya lateral × lengan ke dasar footing).</p>
+        {cmb && (
+          <>
+            <h3>4.2 Kombinasi Beban ASD pada Footing (LC101–161)</h3>
+            <ComboTable rows={cmb.asd} mm={cmb.maxmin_asd} />
+            <h3>4.3 Kombinasi Beban LRFD pada Footing (LC501–558)</h3>
+            <ComboTable rows={cmb.lrfd} mm={cmb.maxmin_lrfd} />
+          </>
+        )}
       </section>
 
       <section className="rpt-section">
@@ -469,18 +629,18 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
             sub={<>{f(tz.qu)} / {f(fd.SF_bc, 1)}</>} val={f(tz.qall)} unit="kPa" />
         </DerivGroup>
 
-        <DerivGroup title="Daya dukung tanah — tegangan kontak" refs={`governing ${ck.daya_dukung.lc}`}>
+        <DerivGroup title="Daya dukung tanah — tegangan kontak" refs={`governing ${ck.daya_dukung.lc} dari ${asdRows.length || '—'} kombinasi ASD`}>
           <Step desc="Luas & modulus penampang dasar footing"
             expr={<>A<sub>f</sub> = B·L ; S<sub>x</sub> = B·L²/6 ; S<sub>z</sub> = L·B²/6</>}
             sub={<>A<sub>f</sub>={f(Af, 3)} m² ; S<sub>x</sub>={f(Sx, 3)} ; S<sub>z</sub>={f(Sz, 3)} m³</>} />
-          <Step desc="Tegangan maksimum vs daya dukung izin"
+          <Step desc="Tegangan maksimum vs daya dukung izin (dievaluasi utk SEMUA kombinasi ASD)"
             expr={<>σ<sub>max</sub> = <Frac n={<>F<sub>y</sub></>} d={<>A<sub>f</sub></>} /> + <Frac n={<>|M<sub>x</sub>|</>} d={<>S<sub>x</sub></>} /> + <Frac n={<>|M<sub>z</sub>|</>} d={<>S<sub>z</sub></>} /> ≤ q<sub>all</sub></>}
             sub={<><Frac n={f(govBC.FY)} d={f(Af, 3)} /> + <Frac n={f(Math.abs(nz(govBC.MX)))} d={f(Sx, 3)} /> + <Frac n={f(Math.abs(nz(govBC.MZ)))} d={f(Sz, 3)} /></>}
             val={f(sMax)} unit="kPa" ok={ck.daya_dukung.ok} />
         </DerivGroup>
 
         <DerivGroup title="Stabilitas geser, guling & uplift" refs="ASD — SNI 8460:2017">
-          <Step desc="Geser: gaya penahan gesek (SF ≥ 1.5)" note={`governing ${ck.stab_geser.lc}`}
+          <Step desc="Geser: gaya penahan gesek (SF ≥ 1.5, minimum di seluruh LC)" note={`governing ${ck.stab_geser.lc}`}
             expr={<>F<sub>r</sub> = F<sub>y</sub>·μ ; SF = F<sub>r</sub>/H<sub>lat</sub></>}
             sub={<>F<sub>r</sub> = {f(nz(govSh.FY))}·{f(fd.mu_fric)} = {f(ck.stab_geser.kapasitas)} kN ; H={f(ck.stab_geser.demand)}</>}
             val={f(inf.SFsl)} ok={ck.stab_geser.ok} />
@@ -503,9 +663,13 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
         <h2>7. Desain Fondasi &amp; Penurunan</h2>
 
         <DerivGroup title="Struktur beton (lentur, geser, tulangan)" refs="SNI 2847:2019">
-          <Step desc="Tinggi efektif & beban garis ultimit"
-            expr={<>d = H<sub>f</sub>−c−0.5·d<sub>b</sub> ; q<sub>u,f</sub> = 1.4·q<sub>all</sub></>}
-            sub={<>d = {f(inf.d)} mm ; q<sub>u,f</sub> = {f(inf.qu_f)} kN/m</>} />
+          <Step desc={inf.lrfd_gov
+              ? `Tinggi efektif & tekanan ultimit dari kombinasi LRFD (governing ${inf.lrfd_gov})`
+              : 'Tinggi efektif & beban garis ultimit'}
+            expr={inf.lrfd_gov
+              ? <>d = H<sub>f</sub>−c−0.5·d<sub>b</sub> ; q<sub>u,f</sub> = σ<sub>u,max</sub> = <Frac n={<>F<sub>y</sub></>} d={<>A<sub>f</sub></>} /> + <Frac n={<>|M<sub>x</sub>|</>} d={<>S<sub>x</sub></>} /> + <Frac n={<>|M<sub>z</sub>|</>} d={<>S<sub>z</sub></>} /></>
+              : <>d = H<sub>f</sub>−c−0.5·d<sub>b</sub> ; q<sub>u,f</sub> = 1.4·q<sub>all</sub></>}
+            sub={<>d = {f(inf.d)} mm ; q<sub>u,f</sub> = {f(inf.qu_f)} kN/m²</>} />
           <Step desc="Lentur: momen kantilever vs kapasitas" refs="SNI 2847:2019 Ps. 9 · Tabel 21.2.2"
             expr={<>M<sub>u</sub> = 0.5·q<sub>u,f</sub>·L<sub>kant</sub>² ; ϕM<sub>n</sub> = ϕ·A<sub>s</sub>·f<sub>y</sub>·(d−0.5a)</>}
             sub={<>L<sub>kant</sub> = {f(aCant, 3)} m ; M<sub>u</sub> = {f(ck.lentur.demand)} ; ϕM<sub>n</sub> = {f(ck.lentur.kapasitas)} kNm</>}
@@ -525,7 +689,7 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
 
         <DerivGroup title="Penurunan (settlement)" refs="Steinbrenner (1934) · Braja M. Das">
           <Step desc="Penurunan segera (elastis)" expr={<>S<sub>i</sub> = q<sub>0</sub>·B·<Frac n="(1−μ²)" d={<>E<sub>s</sub></>} />·I<sub>s</sub>·I<sub>f</sub>·4</>}
-            sub={<>q<sub>0</sub> = {f(inf.q0)} kPa</>} val={f(se.Si)} unit="mm" />
+            sub={<>q<sub>0</sub> = {f(inf.q0)} kPa (σmax governing ASD)</>} val={f(se.Si)} unit="mm" />
           <Step desc="Konsolidasi primer + sekunder" refs={`Cs = ${f(se.Cs, 4)} (auto Cc/10)`}
             expr={<>S<sub>c</sub> = <Frac n={<>C<sub>s</sub>·H</>} d="1+e₀" />·log<Frac n="P₀+ΔP" d="P₀" /></>}
             sub={<>S<sub>c1</sub> = {f(se.Sc1)} + S<sub>c2</sub> = {f(se.Sc2)}</>} unit="mm" />
@@ -538,7 +702,8 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
         </div>
         <p className="rpt-note2">
           Footing ditinjau sebagai kantilever dari muka pedestal (L<sub>kant</sub> = {f(aCant, 3)} m) dengan
-          beban garis ultimit q<sub>u,f</sub> = 1.4·q<sub>all</sub> = {f(inf.qu_f)} kN/m.
+          tekanan ultimit q<sub>u,f</sub> = {f(inf.qu_f)} kN/m²
+          {inf.lrfd_gov ? <> dari σ<sub>u,max</sub> kombinasi LRFD (governing {inf.lrfd_gov})</> : <> = 1.4·q<sub>all</sub></>}.
         </p>
       </section>
 
@@ -553,6 +718,12 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
           <p className="rpt-terz">
             Faktor bentuk (ξ<sub>c</sub>, ξ<sub>q</sub> otomatis = 1 + 0,3·B/L):
             ξ<sub>c</sub> = {result.terzaghi.xi_c.toFixed(2)} · ξ<sub>q</sub> = {result.terzaghi.xi_q.toFixed(2)} · ξ<sub>γ</sub> = {result.terzaghi.xi_g.toFixed(2)}
+          </p>
+        )}
+        {cmb && (
+          <p className="rpt-terz">
+            Kombinasi dievaluasi: <b>{cmb.asd.length} ASD (LC101–161)</b> untuk stabilitas/daya dukung/penurunan
+            + <b>{cmb.lrfd.length} LRFD (LC501–558)</b> untuk desain beton · S<sub>DS</sub> = {f(cmb.Sds, 3)} g.
           </p>
         )}
         <table className="rpt-table rpt-checks">
@@ -590,13 +761,13 @@ function ReportSheet({ fd, soil, lcs, result, project, engineerName, qcName }) {
           <div>
             <span>Dihitung oleh</span>
             <div className="rpt-line" />
-            <div className="rpt-name">{engineerName ? `( ${engineerName} )` : ' '}</div>
+            <div className="rpt-name">{engineerName ? `( ${engineerName} )` : ' '}</div>
             <div className="rpt-role">Engineer</div>
           </div>
           <div>
             <span>Diperiksa oleh</span>
             <div className="rpt-line" />
-            <div className="rpt-name">{qcName ? `( ${qcName} )` : ' '}</div>
+            <div className="rpt-name">{qcName ? `( ${qcName} )` : ' '}</div>
             <div className="rpt-role">QC</div>
           </div>
         </div>

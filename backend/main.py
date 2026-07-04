@@ -7,14 +7,14 @@ Backend FastAPI untuk aplikasi pondasi dangkal.
 Jalankan: uvicorn main:app --reload --port 8000
 """
 import os
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from foundation_calc import (
-    Foundation, Soil, LoadCase, run_full_check,
+    Foundation, Soil, LoadCase, run_full_check, KNOWN_LOADS,
 )
 
 app = FastAPI(title="Pondasi Dangkal API", version="1.0.0")
@@ -36,6 +36,15 @@ app.add_middleware(
 class LoadCaseIn(BaseModel):
     nama: str
     FY: float
+    FX: float = 0.0
+    FZ: float = 0.0
+    MX: float = 0.0
+    MZ: float = 0.0
+
+
+class BasicLoadIn(BaseModel):
+    """Reaksi tumpuan satu beban primer (DL, PE, TF, WX, VX, …) — kN, kNm."""
+    FY: float = 0.0
     FX: float = 0.0
     FZ: float = 0.0
     MX: float = 0.0
@@ -89,7 +98,13 @@ class FoundationIn(BaseModel):
 class CalcRequest(BaseModel):
     foundation: FoundationIn
     soil: SoilIn
-    load_cases: List[LoadCaseIn]
+    # Mode baru: beban dasar → kombinasi ASD 101–161 & LRFD 501–558 otomatis.
+    # Kunci harus subset KNOWN_LOADS (DL, PE, PO, PT, QE, QO, QT, TE, TF, LL,
+    # LR, CDL, CLL, I, H, B, WX, WZ, VX, VZ).
+    loads: Optional[Dict[str, BasicLoadIn]] = None
+    Sds: float = 0.0             # parameter gempa SDS (g) utk faktor vertikal
+    # Mode legacy: kombinasi ASD manual (desain lama tersimpan tetap terbaca).
+    load_cases: Optional[List[LoadCaseIn]] = None
 
 
 # ---------- Auth (verifikasi JWT Supabase, opsional) ----------
@@ -125,10 +140,16 @@ def health():
 
 @app.post("/calculate")
 def calculate(req: CalcRequest, user=Depends(get_current_user)):
-    if not req.load_cases:
-        raise HTTPException(400, "Minimal satu load case diperlukan.")
     fd = Foundation(**req.foundation.model_dump())
     soil = Soil(**req.soil.model_dump())
+    if req.loads is not None:
+        unknown = [k for k in req.loads if k not in KNOWN_LOADS]
+        if unknown:
+            raise HTTPException(400, f"Beban tidak dikenal: {', '.join(unknown)}. "
+                                     f"Gunakan: {', '.join(KNOWN_LOADS)}")
+        loads = {k: v.model_dump() for k, v in req.loads.items()}
+        return run_full_check(fd, soil, loads=loads, Sds=req.Sds)
+    if not req.load_cases:
+        raise HTTPException(400, "Berikan `loads` (beban dasar) atau `load_cases`.")
     lcs = [LoadCase(**lc.model_dump()) for lc in req.load_cases]
-    result = run_full_check(fd, soil, lcs)
-    return result
+    return run_full_check(fd, soil, lcs)
