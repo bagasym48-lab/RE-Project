@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
 import EquipmentFoundationSketch from './EquipmentFoundationSketch.jsx';
 import { compute, def } from './equipmentFoundationCalc.js';
-import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
+import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, FootingFullForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
 
 const LABELS = {
   rasio_berat: 'Rasio berat fondasi ≥ 5× mesin (kN)',
@@ -426,11 +426,16 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
         </DerivGroup>
 
         <div className="fd-row">
-          <CantileverForceDiagram a={aX} w={i.qu_f} Vmax={VmaxX} Mmax={i.Mux} />
+          <FootingFullForceDiagram
+            B={nz(s.Bf)} a={aX} cCol={nz(s.Beq)} nPed={1}
+            w={i.qu_f} Vmax={VmaxX} Mmax={i.Mux}
+            BLabel={`${f(s.Bf, 2)} m`} topLabel="equipment" />
         </div>
         <p className="rpt-note2">
-          Footing ditinjau sebagai kantilever dari muka blok dengan beban garis ultimit
-          q<sub>u,f</sub> = 1.4·q<sub>all</sub> (arah X ditampilkan); distribusi tekanan tanah trapesium (σmax–σmin) pada §4.
+          Diagram gaya dalam <b>kritis pada penampang penuh fondasi</b> (tepi ke tepi, B<sub>f</sub> = {f(s.Bf, 2)} m, arah X):
+          reaksi tanah ultimit q<sub>u,f</sub> = 1.4·q<sub>all</sub> menimbulkan geser maksimum
+          V<sub>max</sub> = {f(VmaxX)} kN di sisi blok dan momen maksimum M<sub>max</sub> = {f(i.Mux)} kNm di tengah;
+          distribusi tekanan tanah trapesium (σmax–σmin) pada §4.
         </p>
       </section>
 

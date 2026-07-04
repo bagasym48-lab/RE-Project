@@ -491,6 +491,7 @@ figure.fd svg.draw { background: #fff; }
 .fd-load-fill { fill: rgba(31,111,178,.14); stroke: #1f6fb2; stroke-width: 1; }
 .fd-shear-fill { fill: rgba(234,88,12,.16); stroke: #ea580c; stroke-width: 1.2; }
 .fd-shear-fill.neg { fill: rgba(234,88,12,.09); }
+.fd-shear-line { fill: none; stroke: #ea580c; stroke-width: 1.3; stroke-linejoin: round; }
 .fd-mom-fill { fill: rgba(47,158,68,.16); stroke: #2f9e44; stroke-width: 1.2; }
 .fd-face { stroke: #b0392b; stroke-width: 1; stroke-dasharray: 3 3; }
 .fd-hatch { stroke: #37474f; stroke-width: 1; }

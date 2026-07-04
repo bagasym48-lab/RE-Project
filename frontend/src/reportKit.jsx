@@ -243,6 +243,68 @@ export function CantileverForceDiagram({ a, w, Vmax, Mmax, title = 'Gaya dalam f
   );
 }
 
+// Footing penampang PENUH (tepi ke tepi): reaksi tanah merata ke atas dengan
+// kolom/pedestal di tengah → SFD antisimetris (±Vmax di sisi kolom) & BMD
+// simetris (parabola, Mmax di tengah). Menampilkan gaya dalam KRITIS di seluruh
+// lebar pondasi. B, a, cCol, sPed dipakai untuk rasio geometri (satuan bebas asal
+// konsisten); BLabel = teks dimensi. Model simetris — eksak utk 1 pedestal,
+// ilustratif utk 2 pedestal (lihat catatan laporan).
+export function FootingFullForceDiagram({ B, a, cCol = 0, sPed = 0, nPed = 1, w, Vmax, Mmax,
+  BLabel, topLabel = 'kolom', title = 'Gaya dalam kritis footing (penampang penuh)' }) {
+  const W = 340, H = 312, M = 30;
+  const x0 = M, x1 = W - M, span = x1 - x0, cx = (x0 + x1) / 2;
+  const yLbl = 13, yPedTop = 26, yMem = 48, memH = 9;
+  const yArrB = yMem + memH + 22;
+  const yS = 172, sBand = 34, yM = 250, mBand = 42;
+  const Bn = num(B, 1) || 1;
+  const aFrac = Math.min(Math.max(num(a) / Bn, 0), 0.5);
+  const pedW = Math.min(Math.max(num(cCol) / Bn, 0), 0.9) * span;
+  const xLa = x0 + aFrac * span, xRa = x1 - aFrac * span;
+  const sFrac = Math.min(num(sPed) / Bn, 0.8);
+  const centers = nPed >= 2 ? [cx - sFrac * span / 2, cx + sFrac * span / 2] : [cx];
+  const npts = 24;
+  const bmd = Array.from({ length: npts + 1 }, (_, k) => {
+    const t = k / npts; return [x0 + t * span, yM + (1 - (2 * t - 1) ** 2) * mBand];
+  });
+  const poly = (pts) => pts.map((p) => p.join(',')).join(' ');
+  return (
+    <figure className="fd">
+      <figcaption>{title}</figcaption>
+      <svg className="draw" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
+        {/* reaksi tanah merata ke atas */}
+        <text className="fd-lbl" x={W / 2} y={yLbl} textAnchor="middle">qu = {f(w)} kN/m² ↑ (reaksi tanah)</text>
+        {/* pedestal / blok di atas footing */}
+        {pedW > 1 && centers.map((c, i) => (
+          <rect key={i} className="fd-support" x={c - pedW / 2} y={yPedTop} width={pedW} height={yMem - yPedTop} />
+        ))}
+        <text className="fd-face-lbl" x={cx} y={yPedTop - 3} textAnchor="middle">{topLabel}</text>
+        {/* footing penuh */}
+        <rect className="fd-mem" x={x0} y={yMem} width={span} height={memH} fill="none" />
+        {/* panah tekanan tanah ke atas */}
+        {Array.from({ length: 9 }).map((_, k) => { const x = x0 + (k / 8) * span; return <line key={k} className="fd-arrow" x1={x} y1={yArrB} x2={x} y2={yMem + memH} markerEnd="url(#fdArrow)" />; })}
+        <text className="fd-face-lbl" x={x0} y={yMem - 4} textAnchor="start">tepi</text>
+        <text className="fd-face-lbl" x={x1} y={yMem - 4} textAnchor="end">tepi</text>
+        <text className="fd-dim" x={cx} y={yArrB + 12} textAnchor="middle">B = {BLabel} (tepi ke tepi)</text>
+
+        {/* SFD antisimetris */}
+        <text className="fd-lbl" x={x0} y={yS - sBand - 7} textAnchor="start">SFD (kN)</text>
+        <line className="fd-axis" x1={x0} y1={yS} x2={x1} y2={yS} />
+        <polygon className="fd-shear-fill" points={`${x0},${yS} ${xLa},${yS - sBand} ${cx},${yS}`} />
+        <polygon className="fd-shear-fill neg" points={`${cx},${yS} ${xRa},${yS + sBand} ${x1},${yS}`} />
+        <polyline className="fd-shear-line" points={`${x0},${yS} ${xLa},${yS - sBand} ${xRa},${yS + sBand} ${x1},${yS}`} />
+        <text className="fd-val" x={xLa} y={yS - sBand - 1} textAnchor="middle">+Vmax {f(Vmax)}</text>
+        <text className="fd-val" x={xRa} y={yS + sBand + 9} textAnchor="middle">−Vmax</text>
+
+        {/* BMD simetris (parabola, hogging ke bawah) */}
+        <text className="fd-lbl" x={x0} y={yM - 8} textAnchor="start">BMD (kNm)</text>
+        <line className="fd-axis" x1={x0} y1={yM} x2={x1} y2={yM} />
+        <polygon className="fd-mom-fill" points={`${x0},${yM} ${poly(bmd)} ${x1},${yM}`} />
+        <text className="fd-val" x={cx} y={yM + mBand + 12} textAnchor="middle">Mmax {f(Mmax)}</text>
+      </svg>
+    </figure>
+  );
+}
+
 // Kolom kantilever (pipe support): beban lateral H di puncak → N, V, M.
 export function ColumnForceDiagram({ Htot, H: Hlat, Mbase, N, title = 'Gaya dalam kolom (kantilever)' }) {
   const W = 300, H = 250, colX = 122, yTop = 50, yBase = 208, mW = 44;

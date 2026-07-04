@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import FoundationSketch from './FoundationSketch.jsx';
 import DesignPanel from './DesignPanel.jsx';
 import { LogoMark } from './Logo.jsx';
-import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, CantileverForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
+import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, FootingFullForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -732,12 +732,17 @@ function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcNa
         </DerivGroup>
 
         <div className="fd-row">
-          <CantileverForceDiagram a={aCant} w={inf.qu_f} Vmax={inf.qu_f * aCant} Mmax={ck.lentur.demand} />
+          <FootingFullForceDiagram
+            B={B} a={Lll} cCol={nz(fd.c2)} sPed={nz(fd.s_ped)} nPed={nped}
+            w={inf.qu_f} Vmax={inf.qu_f * aCant} Mmax={ck.lentur.demand}
+            BLabel={`${f(B / 1000, 2)} m`} topLabel="pedestal" />
         </div>
         <p className="rpt-note2">
-          Footing ditinjau sebagai kantilever dari muka pedestal (L<sub>kant</sub> = {f(aCant, 3)} m) dengan
-          tekanan ultimit q<sub>u,f</sub> = {f(inf.qu_f)} kN/m²
-          {inf.lrfd_gov ? <> dari σ<sub>u,max</sub> kombinasi LRFD (governing {inf.lrfd_gov})</> : <> = 1.4·q<sub>all</sub></>}.
+          Diagram gaya dalam <b>kritis pada penampang penuh footing</b> (tepi ke tepi, B = {f(B / 1000, 2)} m):
+          reaksi tanah ultimit q<sub>u,f</sub> = {f(inf.qu_f)} kN/m²
+          {inf.lrfd_gov ? <> (σ<sub>u,max</sub> LRFD, governing {inf.lrfd_gov})</> : <> = 1.4·q<sub>all</sub></>} menimbulkan
+          geser maksimum V<sub>max</sub> = {f(inf.qu_f * aCant)} kN di sisi pedestal dan momen maksimum
+          M<sub>max</sub> = {f(ck.lentur.demand)} kNm di tengah. Kantilever L<sub>kant</sub> = {f(aCant, 3)} m tiap sisi.
         </p>
       </section>
 

@@ -235,9 +235,14 @@ calculators). Every `report-sheet` has a **"Rincian perhitungan"** section built
 rows (symbolic formula → number substitution → result → a blue `<Ref>` badge citing the standard,
 e.g. *SNI 2847:2019 Tabel 8.6.1.1*, *SNI 1727:2020 Pers. 26.10-1*, *ACI 318-14 17.6.3*) plus
 `<Frac>` for stacked fractions, and a **"Diagram gaya dalam"** section (SFD/BMD SVGs:
-`SoilPressureDiagram` + `CantileverForceDiagram` for footings, `ColumnForceDiagram` +
-`BeamForceDiagram` for pipe support). The kit is presentational only — callers pass already-computed
-numbers. The pure-frontend calcs (equipment, pipe) expose all intermediates via their `compute().info`;
+`SoilPressureDiagram` + `FootingFullForceDiagram` for footings, `ColumnForceDiagram` +
+`BeamForceDiagram` for pipe support). `FootingFullForceDiagram` draws the **critical internal forces
+across the full footing cross-section (edge to edge)** — uniform upward soil reaction with the
+pedestal/block at center → antisymmetric SFD (±Vmax at the column sides) + symmetric parabolic BMD
+(Mmax at center); it takes `B`/`a`/`cCol`/`sPed` as unit-free geometry ratios (`aFrac = a/B`, exact
+for 1 pedestal, illustrative for 2) plus a `BLabel` string. `CantileverForceDiagram` (half-span)
+remains exported but is no longer wired into the reports. The kit is presentational only — callers
+pass already-computed numbers. The pure-frontend calcs (equipment, pipe) expose all intermediates via their `compute().info`;
 **pondasi dangkal reconstructs substitutions in `ReportSheet` from the backend response + inputs +
 trivial geometry (no math duplicated)** — the physics results (Nc/Nq/Nγ, qu, qall, per-check
 demand/kapasitas, settlement, `info.*`) all come from `/calculate`. Diagram/derivation numbers must
