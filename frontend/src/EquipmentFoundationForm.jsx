@@ -3,10 +3,9 @@
 // DURI-TEST05NW000-CIV-CAL-PHR-2001-00 (lihat equipmentFoundationCalc.js).
 // ALAT BANTU EDUKASI — wajib diverifikasi insinyur sipil berlisensi.
 import { useState } from 'react';
-import { LogoMark } from './Logo.jsx';
 import EquipmentFoundationSketch from './EquipmentFoundationSketch.jsx';
 import { compute, def } from './equipmentFoundationCalc.js';
-import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, FootingFullForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
+import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, FootingFullForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, RunningHeader, ReportPaged, defProject, ItemsTable } from './reportKit.jsx';
 
 const LABELS = {
   rasio_berat: 'Rasio berat fondasi ≥ 5× mesin (kN)',
@@ -160,7 +159,6 @@ export default function EquipmentFoundationForm({ s: sProp, setS: setSProp, proj
 
 // Laporan A4 — tersembunyi di layar (.report-sheet display:none), tampil saat cetak.
 function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
-  const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—');
   const i = r.info;
   const nz = (v) => (Number.isFinite(+v) ? +v : 0);
@@ -181,17 +179,10 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
         ['7. Desain Fondasi & Penurunan', ['Lentur & tulangan', 'Penurunan', 'Anchor bolt']],
         ['8. Rekapitulasi Pengecekan', []],
       ]} />
-      <header className="rpt-head">
-        <div className="rpt-brand">
-          <LogoMark size={48} />
-          <div>
-            <h1>Laporan Kalkulasi Pondasi Equipment</h1>
-            <p>Blok tanpa pedestal · Meyerhof · SNI 1726/1727/2847 · ACI 318-14 · Braja M. Das</p>
-            <p className="rpt-date">Tanggal cetak: {today}</p>
-          </div>
-        </div>
-        <div className={`rpt-verdict ${r.overall_ok ? 'ok' : 'ng'}`}>{r.overall_ok ? 'AMAN' : 'TIDAK AMAN'}</div>
-      </header>
+      <ReportPaged header={
+        <RunningHeader project={project} title="Kalkulasi Pondasi Equipment"
+          right={<span className={`rpt-verdict ${r.overall_ok ? 'ok' : 'ng'}`}>{r.overall_ok ? 'AMAN' : 'TIDAK AMAN'}</span>} />
+      }>
 
       <section className="rpt-section">
         <h2>1. Umum</h2>
@@ -485,6 +476,7 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
           </div>
         </div>
       </footer>
+      </ReportPaged>
     </div>
   );
 }

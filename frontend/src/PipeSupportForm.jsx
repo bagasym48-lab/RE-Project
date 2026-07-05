@@ -8,9 +8,8 @@
 // FEA. Di sini dipakai model kantilever single-pile tersederhana — ALAT BANTU EDUKASI,
 // wajib diverifikasi insinyur sipil berlisensi / analisis STAAD.
 import { useState } from 'react';
-import { LogoMark } from './Logo.jsx';
 import PipeSupportSketch from './PipeSupportSketch.jsx';
-import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, ColumnForceDiagram, BeamForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
+import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, ColumnForceDiagram, BeamForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, RunningHeader, ReportPaged, defProject, ItemsTable } from './reportKit.jsx';
 
 const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const PI = Math.PI;
@@ -261,7 +260,6 @@ export default function PipeSupportForm({ s: sProp, setS: setSProp, project: pro
 
 // Laporan A4 — disembunyikan di layar (.report-sheet display:none), tampil saat cetak.
 function PipeReportSheet({ s, r, project, engineerName, qcName }) {
-  const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—');
   const Mbeam = (n(s.P_oper) * n(s.L)) / 4;
   const pmGE = r.info.Pc ? r.info.Pr / r.info.Pc >= 0.2 : false;
@@ -279,17 +277,10 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
         ['7. Penurunan Pile', []],
         ['8. Rekapitulasi Pengecekan', []],
       ]} />
-      <header className="rpt-head">
-        <div className="rpt-brand">
-          <LogoMark size={48} />
-          <div>
-            <h1>Laporan Kalkulasi Pipe Support</h1>
-            <p>Single-pile cantilever · ASCE 7-16/22 · SNI 1726:2019 · Braja M. Das</p>
-            <p className="rpt-date">Tanggal cetak: {today}</p>
-          </div>
-        </div>
-        <div className={`rpt-verdict ${r.overall_ok ? 'ok' : 'ng'}`}>{r.overall_ok ? 'AMAN' : 'TIDAK AMAN'}</div>
-      </header>
+      <ReportPaged header={
+        <RunningHeader project={project} title="Kalkulasi Pipe Support"
+          right={<span className={`rpt-verdict ${r.overall_ok ? 'ok' : 'ng'}`}>{r.overall_ok ? 'AMAN' : 'TIDAK AMAN'}</span>} />
+      }>
 
       <section className="rpt-section">
         <h2>1. Umum</h2>
@@ -516,6 +507,7 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
           </div>
         </div>
       </footer>
+      </ReportPaged>
     </div>
   );
 }

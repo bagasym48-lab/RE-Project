@@ -378,6 +378,20 @@ table.logs select, table.logs input { border: 1px solid var(--line-strong); bord
 .rpt-verdict.ng { background: linear-gradient(135deg, #dc2626, #b91c1c); }
 .rpt-verdict.mto { background: var(--brand-grad-bar); }
 
+/* Header berjalan (diulang tiap halaman cetak via <thead>) */
+.rpt-paged { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.rpt-paged > thead { display: table-header-group; }
+.rpt-paged > thead > tr > td, .rpt-paged > tbody > tr > td { padding: 0; border: 0; vertical-align: top; }
+.rpt-runhead { display: flex; align-items: center; gap: 10px;
+  padding: 3px 0 6px; border-bottom: 2px solid var(--navy); margin-bottom: 10px; }
+.rpt-runhead img { height: 26px; width: auto; flex: 0 0 auto; }
+.rpt-runhead .rh-mid { flex: 1 1 auto; min-width: 0; }
+.rpt-runhead .rh-title { font-size: 11px; font-weight: 800; color: var(--navy); line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; }
+.rpt-runhead .rh-sub { font-size: 8px; color: #667; margin-top: 1px; }
+.rpt-runhead .rh-right { flex: 0 0 auto; }
+.rpt-runhead .rh-right .rpt-verdict { font-size: 10px; padding: 3px 9px; }
+
 .rpt-section { margin-bottom: 14px; }
 .rpt-section h2 { font-size: 13.5px; color: var(--navy); margin: 0 0 8px; padding-bottom: 3px;
   border-bottom: 1px solid var(--line-strong); break-after: avoid; }

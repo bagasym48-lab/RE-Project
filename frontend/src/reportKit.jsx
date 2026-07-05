@@ -107,6 +107,39 @@ export function ReportTOC({ items }) {
   );
 }
 
+// Header berjalan di SETIAP halaman cetak. Judul = info proyek digabung
+// (No. Proyek – Site – No. Dokumen – No. Referensi – Nama Struktur) sehingga
+// berbeda tiap proyek; bila semua kosong, memakai `title` kalkulasi sebagai
+// fallback. `right` opsional (mis. badge verdict / label ESTIMASI).
+export function RunningHeader({ project, title, right }) {
+  const p = project || {};
+  const parts = [p.jobNo, p.site, p.docNo, p.refNo, p.structureName]
+    .map((x) => String(x ?? '').trim()).filter(Boolean);
+  const heading = parts.length ? parts.join('  –  ') : (title || 'Laporan Kalkulasi');
+  return (
+    <div className="rpt-runhead">
+      <LogoMark size={26} />
+      <div className="rh-mid">
+        <div className="rh-title">{heading}</div>
+        {title && <div className="rh-sub">{title}</div>}
+      </div>
+      {right != null && <div className="rh-right">{right}</div>}
+    </div>
+  );
+}
+
+// Pembungkus badan laporan agar `header` diulang di setiap halaman cetak.
+// Memakai <thead> tabel (diulang browser tiap halaman — andal di Chrome).
+// Cover & Daftar Isi diletakkan DI LUAR pembungkus ini (tanpa header berjalan).
+export function ReportPaged({ header, children }) {
+  return (
+    <table className="rpt-paged">
+      <thead><tr><td>{header}</td></tr></thead>
+      <tbody><tr><td>{children}</td></tr></tbody>
+    </table>
+  );
+}
+
 export function Frac({ n, d }) {
   return (
     <span className="frac"><span className="fr-n">{n}</span><span className="fr-d">{d}</span></span>

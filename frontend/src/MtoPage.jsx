@@ -4,8 +4,7 @@
 // Setiap sub-tab bisa dicetak (laporan A4) — struktur & gaya mengikuti
 // laporan kalkulasi (ReportCover, pengantar teoritis, tabel hasil).
 import { useState } from 'react';
-import { FDDefs, ReportCover, ReportTOC, TheoryIntro, ItemsTable, defProject } from './reportKit.jsx';
-import { LogoMark } from './Logo.jsx';
+import { FDDefs, ReportCover, ReportTOC, TheoryIntro, ItemsTable, RunningHeader, ReportPaged, defProject } from './reportKit.jsx';
 
 const rupiah = (n) => 'Rp ' + Math.round(Number(n) || 0).toLocaleString('id-ID');
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -45,9 +44,8 @@ function SignPrint({ sign }) {
 
 // ---- Laporan A4 generik MTO (tersembunyi di layar, tampil saat cetak) ------
 // resultRows: array {label, value, kind?('sub'|'total')}.
-function MtoReportSheet({ title, subtitle, project, sign, metode, inputRows,
+function MtoReportSheet({ title, project, sign, metode, inputRows,
                          theoryTitle, theoryRefs, theory, resultRows, sketch, note }) {
-  const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   return (
     <div className="report-sheet">
       <FDDefs />
@@ -57,17 +55,10 @@ function MtoReportSheet({ title, subtitle, project, sign, metode, inputRows,
         ['2. Data Input', []],
         ['3. Perhitungan Material Take-Off', ['3.1 Pengantar Teoritis', '3.2 Hasil Take-Off']],
       ]} />
-      <header className="rpt-head">
-        <div className="rpt-brand">
-          <LogoMark size={48} />
-          <div>
-            <h1>{title}</h1>
-            <p>{subtitle}</p>
-            <p className="rpt-date">Tanggal cetak: {today}</p>
-          </div>
-        </div>
-        <div className="rpt-verdict mto">ESTIMASI</div>
-      </header>
+      <ReportPaged header={
+        <RunningHeader project={project} title={title}
+          right={<span className="rpt-verdict mto">ESTIMASI</span>} />
+      }>
 
       <section className="rpt-section">
         <h2>1. Umum</h2>
@@ -130,6 +121,7 @@ function MtoReportSheet({ title, subtitle, project, sign, metode, inputRows,
           </div>
         </div>
       </footer>
+      </ReportPaged>
     </div>
   );
 }

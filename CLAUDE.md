@@ -216,9 +216,19 @@ The cover has `break-after: page` so the report body starts on page 2. Project i
 (controlled with a local fallback). Fill it once; it appears on whichever report you print.
 `defProject` + `ProjectInfoForm` + `ReportCover` are exported from `reportKit.jsx`.
 
+**Every printed page of the report body carries a running header** (`RunningHeader` + `ReportPaged`
+in `reportKit.jsx`). `ReportPaged` wraps the numbered body in a `<table class="rpt-paged">` whose
+`<thead>` (`display: table-header-group`) the browser **repeats on every printed page** — the reliable
+Chrome technique (a `position:fixed` header would overlap on page 2+). Cover + TOC sit **outside** the
+wrapper (their own pages, no running header). The header title is the **project info joined**
+(`jobNo – site – docNo – refNo – structureName`), so it differs per project; if all are empty it falls
+back to the calc `title`. It replaced the old one-shot `.rpt-head` masthead (removed from all four
+reports); `right` carries the verdict badge (`AMAN`/`TIDAK AMAN`, or `ESTIMASI` for MTO). Styles:
+`.rpt-paged`/`.rpt-runhead`/`.rh-*` in `index.css`.
+
 **Reports follow a structured AFES-style document layout** (modelled on `DUMY AFES.pdf`). The
 sequence is **Cover** (`ReportCover`, `break-after: page`) → **Daftar Isi** (`ReportTOC`, its own
-page; `items` = `[[main, [subs…]], …]`) → the numbered body: **1. Umum** (Kode & Standar, Material &
+page; `items` = `[[main, [subs…]], …]`) → the numbered body (wrapped in `ReportPaged`): **1. Umum** (Kode & Standar, Material &
 Berat Satuan, Kondisi Tanah & Faktor Keamanan — `ItemsTable` "Item | Nilai" tables), **2. Data Input**
 (the raw input listing as `rpt-kv`), **3. Gambar Sketsa** (2D detail sketch only — no 3D), **4.
 Kombinasi Beban** (load definitions + load-case/combination table), **5. Data Fondasi/Struktur**

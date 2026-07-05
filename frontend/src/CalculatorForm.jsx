@@ -7,8 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import FoundationSketch from './FoundationSketch.jsx';
 import DesignPanel from './DesignPanel.jsx';
-import { LogoMark } from './Logo.jsx';
-import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, FootingFullForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, defProject, ItemsTable } from './reportKit.jsx';
+import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, FootingFullForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, RunningHeader, ReportPaged, defProject, ItemsTable } from './reportKit.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -438,7 +437,6 @@ function ComboTable({ rows, mm }) {
 // ReportSheet — laporan A4 untuk dicetak/disimpan PDF. Disembunyikan di layar
 // (display:none), hanya tampil di @media print. Lihat .report-sheet di index.css.
 function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcName }) {
-  const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   // Nilai turunan untuk substitusi rumus (geometri saja; hasil fisika dari backend).
   const nz = (v) => (Number.isFinite(+v) ? +v : 0);
   const B = nz(fd.B), L = nz(fd.L), h = nz(fd.h), Df = nz(fd.Df);
@@ -477,19 +475,10 @@ function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcNa
         ['7. Desain Fondasi & Penurunan', ['Struktur beton', 'Penurunan']],
         ['8. Rekapitulasi & Kesimpulan', []],
       ]} />
-      <header className="rpt-head">
-        <div className="rpt-brand">
-          <LogoMark size={48} />
-          <div>
-            <h1>Laporan Kalkulasi Pondasi Dangkal</h1>
-            <p>Telapak (footing) · SNI 2847:2019 · Terzaghi–Krizek · Steinbrenner</p>
-            <p className="rpt-date">Tanggal cetak: {today}</p>
-          </div>
-        </div>
-        <div className={`rpt-verdict ${result.overall_ok ? 'ok' : 'ng'}`}>
-          {result.overall_ok ? 'AMAN' : 'TIDAK AMAN'}
-        </div>
-      </header>
+      <ReportPaged header={
+        <RunningHeader project={project} title="Kalkulasi Pondasi Dangkal"
+          right={<span className={`rpt-verdict ${result.overall_ok ? 'ok' : 'ng'}`}>{result.overall_ok ? 'AMAN' : 'TIDAK AMAN'}</span>} />
+      }>
 
       <section className="rpt-section">
         <h2>1. Umum</h2>
@@ -811,6 +800,7 @@ function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcNa
           </div>
         </div>
       </footer>
+      </ReportPaged>
     </div>
   );
 }
