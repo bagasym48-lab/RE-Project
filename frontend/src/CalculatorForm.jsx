@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import FoundationSketch from './FoundationSketch.jsx';
 import DesignPanel from './DesignPanel.jsx';
-import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, FootingFullForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, RunningHeader, ReportPaged, defProject, ItemsTable } from './reportKit.jsx';
+import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, FootingFullForceDiagram, RebarSketch, f, ProjectInfoForm, ReportCover, ReportTOC, RunningHeader, ReportPaged, defProject, ItemsTable } from './reportKit.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -468,7 +468,7 @@ function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcNa
       <ReportTOC items={[
         ['1. Umum', ['1.1 Kode & Standar', '1.2 Material & Berat Satuan', '1.3 Kondisi Tanah & Faktor Keamanan']],
         ['2. Data Input', ['2.1 Dimensi Pondasi', '2.2 Material & Faktor', '2.3 Parameter Tanah']],
-        ['3. Gambar Sketsa', []],
+        ['3. Gambar Sketsa', ['3.1 Sketsa Fondasi', '3.2 Detail Penulangan Footing']],
         ['4. Kombinasi Beban', ['4.1 Beban Dasar', '4.2 Kombinasi ASD pada Footing (LC101–161)', '4.3 Kombinasi LRFD pada Footing (LC501–558)']],
         ['5. Data Fondasi', ['5.1 Data Footing & Penampang', '5.2 Data Pedestal']],
         ['6. Cek Stabilitas', ['Daya dukung Terzaghi', 'Tegangan kontak', 'Geser, guling, uplift']],
@@ -531,6 +531,7 @@ function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcNa
 
       <section className="rpt-section">
         <h2>3. Gambar Sketsa</h2>
+        <h3>3.1 Sketsa Fondasi</h3>
         <div className="rpt-sketch"><FoundationSketch fd={fd} /></div>
         {Number(fd.n_pedestal) >= 2 && (
           <p className="rpt-note2">
@@ -540,6 +541,16 @@ function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcNa
             di antara pedestal (tulangan atas) belum dicakup — wajib dicek terpisah oleh engineer.
           </p>
         )}
+        <h3>3.2 Detail Penulangan Footing</h3>
+        <RebarSketch B={B} L={L} h={h} cover={nz(fd.cover)} db={nz(fd.db)} s={nz(fd.srl)}
+          nPed={nped} cPed={nz(fd.c2)} sPed={nz(fd.s_ped)} />
+        <p className="rpt-note2">
+          Tulangan bawah footing dua arah Ø{f(fd.db, 0)}-{f(fd.srl, 0)} mm
+          (±{Math.max(Math.floor((L - 2 * nz(fd.cover)) / Math.max(nz(fd.srl), 1)) + 1, 2)} batang arah X
+          + {Math.max(Math.floor((B - 2 * nz(fd.cover)) / Math.max(nz(fd.srl), 1)) + 1, 2)} batang arah Y),
+          selimut beton {f(fd.cover, 0)} mm — sesuai input kalkulasi (dipakai pada cek lentur &amp; tulangan
+          minimum §7). Detail tulangan pedestal (vertikal + sengkang) dirinci pada laporan MTO.
+        </p>
       </section>
 
       <section className="rpt-section">

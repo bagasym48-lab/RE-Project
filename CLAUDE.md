@@ -141,8 +141,13 @@ for a header's presence and `/calculate` is effectively public; real Supabase JW
 
 ### Data model (`supabase/schema.sql`)
 Roles `engineer` / `qc` / `viewer` / `leader` (`profiles.role`), `work_items`, and `progress_logs`.
-**`leader`** = same capabilities as `engineer` plus the right to **delete projects** (RLS: only
-`leader` has `delete` on `projects`; `enforce_pdoc_columns` treats leader like engineer).
+**Project CRUD is leader-only**: RLS gives only `leader` insert/update/delete on `projects` and
+insert/delete on `project_documents` (docs are created/removed with their project). **Engineer**
+can only update docs (submit laporan), write `progress_logs`, and add `project_comments`
+(catatan kendala); `enforce_pdoc_columns` treats leader like engineer for doc updates. The
+"Buat project baru" form + delete button in `ProjectsPage.jsx` are gated by `isLeader` to match.
+(Policy names changed to `"... (leader)"` — the drop-old/create-new block in §5 of `schema.sql`
+is idempotent; re-run it in the SQL editor on the live DB.)
 A trigger auto-creates a `profiles` row (defaulting to `viewer`) on signup; **new users' roles
 are set manually** via SQL. RLS is enabled but is **per-row only**; column-level rules are
 enforced by a `BEFORE UPDATE` trigger **`enforce_progress_columns`** on `progress_logs`
@@ -151,8 +156,8 @@ enforced by a `BEFORE UPDATE` trigger **`enforce_progress_columns`** on `progres
 (null `auth.uid()`) is unrestricted.
 
 A second progress workflow lives in **`projects`** + **`project_documents`** (frontend
-`ProjectsPage.jsx`, a sub-tab of `ProgressPage`): a project owns N documents (5 by default).
-Engineer sets a doc `status` `todo`→`submitted` (+`submit_catatan`/`design_id`); QC sets
+`ProjectsPage.jsx`, a sub-tab of `ProgressPage`): a project owns N documents (5 by default),
+created by the **leader**. Engineer sets a doc `status` `todo`→`submitted` (+`submit_catatan`/`design_id`); QC sets
 `submitted`→`acc`/`revisi` (+`qc_catatan`). Same trigger pattern — **`enforce_pdoc_columns`**
 blocks engineers from ACC-ing and QC from editing submissions. Project progress = `acc`
 docs / total × 100%. The two new tables and the trigger must be run in the Supabase SQL editor
@@ -230,7 +235,12 @@ reports); `right` carries the verdict badge (`AMAN`/`TIDAK AMAN`, or `ESTIMASI` 
 sequence is **Cover** (`ReportCover`, `break-after: page`) → **Daftar Isi** (`ReportTOC`, its own
 page; `items` = `[[main, [subs…]], …]`) → the numbered body (wrapped in `ReportPaged`): **1. Umum** (Kode & Standar, Material &
 Berat Satuan, Kondisi Tanah & Faktor Keamanan — `ItemsTable` "Item | Nilai" tables), **2. Data Input**
-(the raw input listing as `rpt-kv`), **3. Gambar Sketsa** (2D detail sketch only — no 3D), **4.
+(the raw input listing as `rpt-kv`), **3. Gambar Sketsa** (2D detail sketch only — no 3D; plus
+**§3.2 Detail Penulangan** via `RebarSketch` in `reportKit.jsx`: cross-section [dots = bars normal
+to the cut, line = parallel bars, cover/h/B dims] + plan view of the bottom mesh, labelled
+`Ø{db}-{s}` with bar counts `floor((side−2·cover)/s)+1`; all inputs in **mm** — equipment passes
+`Bf·1000` etc. `nPed=0` = block/no pedestal; `pedBarsLabel` [only MTO knows pedestal rebar] draws
+indicative pedestal bars+ties. Styles `.rb-*` in `index.css`. Pipe support has no rebar → no §3.2), **4.
 Kombinasi Beban** (load definitions + load-case/combination table), **5. Data Fondasi/Struktur**
 (dimension `ItemsTable`s), **6. Cek Stabilitas/Kapasitas**, **7. Desain & Penurunan**, and **8.
 Rekapitulasi**. Only main sections carry numbers; the derivation `DerivGroup`s inside §6/§7 use

@@ -406,6 +406,110 @@ export function BeamForceDiagram({ L, P, Mmax, title = 'Gaya dalam beam (beban t
 }
 
 // ============================================================
+// Sketsa detail penulangan (potongan + denah)
+// ============================================================
+const _clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+
+// Detail penulangan footing utk laporan: potongan melintang (dot = batang
+// tegak lurus bidang potong, garis = batang sejajar) + denah jaring bawah.
+// Semua dimensi mm. nPed=0 → tanpa pedestal (blok equipment).
+// pedBarsLabel opsional (mis. "8Ø16 · sengkang Ø10-150") — bila diisi,
+// tulangan pedestal digambar indikatif + diberi label.
+export function RebarSketch({ B, L, h, cover, db, s, nPed = 1, cPed = 0, sPed = 0,
+  pedBarsLabel, topLabel = 'pedestal' }) {
+  const Bn = Math.max(num(B), 1), Ln = Math.max(num(L), 1), hn = Math.max(num(h), 1);
+  const cv = Math.max(num(cover), 0), dia = Math.max(num(db), 1), sp = Math.max(num(s), 1);
+  const nAcrossB = Math.max(Math.floor((Bn - 2 * cv) / sp) + 1, 2); // tersebar sepanjang B
+  const nAcrossL = Math.max(Math.floor((Ln - 2 * cv) / sp) + 1, 2); // tersebar sepanjang L
+  const barTxt = `Ø${f(dia, 0)}-${f(sp, 0)}`;
+
+  // ---------- Potongan melintang ----------
+  const W1 = 380, H1 = 216, mx = 46;
+  const bw = W1 - 2 * mx, x0 = mx, x1 = W1 - mx;
+  const hpx = _clamp((hn / Bn) * bw, 36, 82);
+  const yBot = 158, yTop = yBot - hpx;
+  const cpx = _clamp((cv / Bn) * bw, 4, 16);
+  const nDots = Math.min(nAcrossB, 41);
+  const dotY = yBot - cpx - 3.5;
+  const dxL = x0 + cpx + 3, dxR = x1 - cpx - 3;
+  const dots = Array.from({ length: nDots }, (_, k) => dxL + (k / (nDots - 1)) * (dxR - dxL));
+  const pedH = 30;
+  const wp = _clamp((num(cPed) / Bn) * bw, 14, bw * 0.5);
+  const centers = nPed >= 2
+    ? [W1 / 2 - (num(sPed) / Bn) * bw / 2, W1 / 2 + (num(sPed) / Bn) * bw / 2]
+    : nPed === 1 ? [W1 / 2] : [];
+
+  // ---------- Denah ----------
+  const W2 = 320, H2 = 216;
+  const k = Math.min(210 / Bn, 138 / Ln);
+  const pw = Bn * k, ph = Ln * k;
+  const px0 = (W2 - pw) / 2, py0 = 34;
+  const inr = _clamp(cv * k, 3, 12);
+  const nv = Math.min(nAcrossB, 23), nh = Math.min(nAcrossL, 23);
+  const vX = Array.from({ length: nv }, (_, i) => px0 + inr + (i / (nv - 1)) * (pw - 2 * inr));
+  const hY = Array.from({ length: nh }, (_, i) => py0 + inr + (i / (nh - 1)) * (ph - 2 * inr));
+  const wpp = _clamp(num(cPed) * k, 6, pw * 0.5);
+  const pCenters = nPed >= 2
+    ? [W2 / 2 - num(sPed) * k / 2, W2 / 2 + num(sPed) * k / 2]
+    : nPed === 1 ? [W2 / 2] : [];
+
+  return (
+    <div className="fd-row">
+      <figure className="fd">
+        <figcaption>Potongan — detail penulangan footing</figcaption>
+        <svg className="draw" viewBox={`0 0 ${W1} ${H1}`} role="img" aria-label="Potongan penulangan footing">
+          {/* pedestal / stub di atas footing */}
+          {centers.map((c, i) => (
+            <g key={i}>
+              <rect className="rb-conc" x={c - wp / 2} y={yTop - pedH} width={wp} height={pedH} />
+              {pedBarsLabel && (
+                <g>
+                  <line className="rb-bar" x1={c - wp / 2 + 6} y1={yTop - pedH + 4} x2={c - wp / 2 + 6} y2={dotY - 2} />
+                  <line className="rb-bar" x1={c + wp / 2 - 6} y1={yTop - pedH + 4} x2={c + wp / 2 - 6} y2={dotY - 2} />
+                  {[0.25, 0.55, 0.85].map((t) => (
+                    <line key={t} className="rb-tie" x1={c - wp / 2 + 4} y1={yTop - pedH + t * pedH} x2={c + wp / 2 - 4} y2={yTop - pedH + t * pedH} />
+                  ))}
+                </g>
+              )}
+            </g>
+          ))}
+          {centers.length > 0 && <text className="fd-face-lbl" x={W1 / 2} y={yTop - pedH - 4} textAnchor="middle">{topLabel}{pedBarsLabel ? ` — ${pedBarsLabel}` : ''}</text>}
+          {/* footing */}
+          <rect className="rb-conc" x={x0} y={yTop} width={bw} height={hpx} />
+          {/* tulangan bawah: garis (arah sejajar potongan) + titik (tegak lurus) */}
+          <line className="rb-bar" x1={dxL} y1={dotY - 5.5} x2={dxR} y2={dotY - 5.5} />
+          {dots.map((x, i) => <circle key={i} className="rb-dot" cx={x} cy={dotY} r={2.4} />)}
+          <text className="rb-lbl" x={x0 + 8} y={dotY - 14} textAnchor="start">Tul. bawah 2 arah {barTxt}</text>
+          {/* dimensi B */}
+          <line className="fd-axis" x1={x0} y1={yBot + 10} x2={x1} y2={yBot + 10} />
+          <text className="fd-dim" x={W1 / 2} y={yBot + 22} textAnchor="middle">B = {f(Bn, 0)} mm</text>
+          {/* dimensi h + selimut di kanan */}
+          <line className="fd-axis" x1={x1 + 9} y1={yTop} x2={x1 + 9} y2={yBot} />
+          <text className="fd-dim" x={x1 + 14} y={(yTop + yBot) / 2} textAnchor="middle" transform={`rotate(-90 ${x1 + 14} ${(yTop + yBot) / 2})`}>h = {f(hn, 0)}</text>
+          <line className="fd-axis" x1={x0 - 9} y1={dotY} x2={x0 - 9} y2={yBot} />
+          <text className="fd-dim" x={x0 - 13} y={(dotY + yBot) / 2 + 2} textAnchor="middle" transform={`rotate(-90 ${x0 - 13} ${(dotY + yBot) / 2})`}>c={f(cv, 0)}</text>
+        </svg>
+      </figure>
+
+      <figure className="fd">
+        <figcaption>Denah — jaring tulangan bawah 2 arah</figcaption>
+        <svg className="draw" viewBox={`0 0 ${W2} ${H2}`} role="img" aria-label="Denah tulangan footing">
+          <rect className="rb-conc" x={px0} y={py0} width={pw} height={ph} />
+          {vX.map((x, i) => <line key={`v${i}`} className="rb-grid" x1={x} y1={py0 + inr} x2={x} y2={py0 + ph - inr} />)}
+          {hY.map((y, i) => <line key={`h${i}`} className="rb-grid" x1={px0 + inr} y1={y} x2={px0 + pw - inr} y2={y} />)}
+          {pCenters.map((c, i) => (
+            <rect key={i} className="rb-ped-dash" x={c - wpp / 2} y={py0 + ph / 2 - wpp / 2} width={wpp} height={wpp} />
+          ))}
+          <text className="rb-lbl" x={W2 / 2} y={py0 - 8} textAnchor="middle">{barTxt} (arah X &amp; Y)</text>
+          <text className="fd-dim" x={W2 / 2} y={py0 + ph + 14} textAnchor="middle">B = {f(Bn, 0)} mm · {nAcrossB} btg</text>
+          <text className="fd-dim" x={px0 - 8} y={py0 + ph / 2} textAnchor="middle" transform={`rotate(-90 ${px0 - 8} ${py0 + ph / 2})`}>L = {f(Ln, 0)} mm · {nAcrossL} btg</text>
+        </svg>
+      </figure>
+    </div>
+  );
+}
+
+// ============================================================
 // Struktur dokumen: tabel "Item | Nilai" + sketsa 3D isometrik
 // ============================================================
 

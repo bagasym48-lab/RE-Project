@@ -218,27 +218,44 @@ create index idx_pdoc_project on project_documents(project_id);
 alter table projects          enable row level security;
 alter table project_documents enable row level security;
 
--- projects: semua login baca; engineer kelola
+-- projects: semua login baca; HANYA LEAD yang boleh membuat/mengubah/menghapus
+-- project. Engineer hanya: update progress (submit dokumen), catatan kendala.
+-- CATATAN MIGRASI (DB live): jalankan ulang blok policy ini di Supabase SQL
+-- Editor — drop policy lama (nama engineer/leader) sudah disertakan di bawah.
+drop policy if exists "semua login baca projects" on projects;
 create policy "semua login baca projects"
   on projects for select using (auth.uid() is not null);
-create policy "buat projects (engineer/leader)"
-  on projects for insert with check (my_role() in ('engineer','leader'));
-create policy "ubah projects (engineer/leader)"
+drop policy if exists "buat projects (engineer/leader)" on projects;
+drop policy if exists "buat projects (leader)" on projects;
+create policy "buat projects (leader)"
+  on projects for insert with check (my_role() = 'leader');
+drop policy if exists "ubah projects (engineer/leader)" on projects;
+drop policy if exists "ubah projects (leader)" on projects;
+create policy "ubah projects (leader)"
   on projects for update
-  using (my_role() in ('engineer','leader')) with check (my_role() in ('engineer','leader'));
+  using (my_role() = 'leader') with check (my_role() = 'leader');
+drop policy if exists "hapus projects (leader)" on projects;
 create policy "hapus projects (leader)"
   on projects for delete using (my_role() = 'leader');
 
--- project_documents
+-- project_documents: dokumen dibuat/dihapus bersama project (hak lead).
+-- Engineer tetap boleh UPDATE (submit laporan); QC tetap ACC/revisi.
+drop policy if exists "semua login baca pdoc" on project_documents;
 create policy "semua login baca pdoc"
   on project_documents for select using (auth.uid() is not null);
-create policy "insert pdoc (engineer/leader)"
-  on project_documents for insert with check (my_role() in ('engineer','leader'));
+drop policy if exists "insert pdoc (engineer/leader)" on project_documents;
+drop policy if exists "insert pdoc (leader)" on project_documents;
+create policy "insert pdoc (leader)"
+  on project_documents for insert with check (my_role() = 'leader');
+drop policy if exists "update pdoc (engineer/leader)" on project_documents;
 create policy "update pdoc (engineer/leader)"
   on project_documents for update
   using (my_role() in ('engineer','leader')) with check (my_role() in ('engineer','leader'));
-create policy "hapus pdoc (engineer/leader)"
-  on project_documents for delete using (my_role() in ('engineer','leader'));
+drop policy if exists "hapus pdoc (engineer/leader)" on project_documents;
+drop policy if exists "hapus pdoc (leader)" on project_documents;
+create policy "hapus pdoc (leader)"
+  on project_documents for delete using (my_role() = 'leader');
+drop policy if exists "qc update pdoc" on project_documents;
 create policy "qc update pdoc"
   on project_documents for update
   using (my_role() = 'qc') with check (my_role() = 'qc');

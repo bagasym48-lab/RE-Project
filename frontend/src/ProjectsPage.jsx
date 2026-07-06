@@ -144,7 +144,9 @@ function DocRow({ doc, role, designs, profilesMap, events = [], onSubmit, onQc }
 
 export default function ProjectsPage({ userId, role }) {
   const isLeader = role === 'leader';
-  const isEngineer = role === 'engineer' || isLeader; // leader = kemampuan engineer + hapus project
+  // Engineer: submit laporan dokumen + catatan kendala saja.
+  // Add/hapus project = hak lead (ditegakkan juga oleh RLS di Supabase).
+  const isEngineer = role === 'engineer' || isLeader;
   const [projects, setProjects] = useState([]);
   const [selId, setSelId] = useState(null);
   const [docs, setDocs] = useState([]);
@@ -335,7 +337,7 @@ export default function ProjectsPage({ userId, role }) {
                   </div>
                 ))}
 
-            {isEngineer ? (
+            {isLeader ? (
               <>
                 <h3>Buat project baru</h3>
                 <form className="form-col" onSubmit={createProject}>
@@ -349,7 +351,12 @@ export default function ProjectsPage({ userId, role }) {
                   <button className="btn" type="submit" disabled={creating}>{creating ? 'Menyimpan…' : 'Buat project + 5 dokumen'}</button>
                 </form>
               </>
-            ) : <p className="muted-note">Hanya engineer/leader yang bisa membuat project.</p>}
+            ) : (
+              <p className="muted-note">
+                Hanya <b>lead</b> yang dapat membuat/menghapus project. Engineer: update progress
+                (submit laporan dokumen) &amp; tulis catatan kendala pada project yang ada.
+              </p>
+            )}
           </div>
         </div>
 

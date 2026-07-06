@@ -506,6 +506,16 @@ figure.fd svg.draw { background: #fff; }
 .fd-shear-fill { fill: rgba(234,88,12,.16); stroke: #ea580c; stroke-width: 1.2; }
 .fd-shear-fill.neg { fill: rgba(234,88,12,.09); }
 .fd-shear-line { fill: none; stroke: #ea580c; stroke-width: 1.3; stroke-linejoin: round; }
+
+/* Sketsa detail penulangan (RebarSketch) */
+.rb-conc { fill: #f2f6fa; stroke: #37474f; stroke-width: 1.6; }
+.rb-dot { fill: #8a2b1d; }
+.rb-bar { stroke: #8a2b1d; stroke-width: 2.2; stroke-linecap: round; fill: none; }
+.rb-tie { stroke: #b0392b; stroke-width: 1; fill: none; }
+.rb-grid { stroke: #b0392b; stroke-width: 1; }
+.rb-ped-dash { fill: none; stroke: #37474f; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.rb-lbl { font-size: 8.5px; font-weight: 700; fill: #8a2b1d;
+  paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
 .fd-mom-fill { fill: rgba(47,158,68,.16); stroke: #2f9e44; stroke-width: 1.2; }
 .fd-face { stroke: #b0392b; stroke-width: 1; stroke-dasharray: 3 3; }
 .fd-hatch { stroke: #37474f; stroke-width: 1; }

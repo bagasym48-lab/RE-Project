@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import EquipmentFoundationSketch from './EquipmentFoundationSketch.jsx';
 import { compute, def } from './equipmentFoundationCalc.js';
-import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, FootingFullForceDiagram, f, ProjectInfoForm, ReportCover, ReportTOC, RunningHeader, ReportPaged, defProject, ItemsTable } from './reportKit.jsx';
+import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, SoilPressureDiagram, FootingFullForceDiagram, RebarSketch, f, ProjectInfoForm, ReportCover, ReportTOC, RunningHeader, ReportPaged, defProject, ItemsTable } from './reportKit.jsx';
 
 const LABELS = {
   rasio_berat: 'Rasio berat fondasi ≥ 5× mesin (kN)',
@@ -172,7 +172,7 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
       <ReportTOC items={[
         ['1. Umum', ['1.1 Kode & Standar', '1.2 Material & Berat Satuan', '1.3 Kondisi Tanah & Faktor Keamanan']],
         ['2. Data Input', []],
-        ['3. Gambar Sketsa', []],
+        ['3. Gambar Sketsa', ['3.1 Sketsa Fondasi', '3.2 Detail Penulangan']],
         ['4. Kombinasi Beban', ['4.1 Definisi Beban', '4.2 Kombinasi Beban Servis (LC 301–313)']],
         ['5. Data Fondasi', ['5.1 Data Footing & Penampang', '5.2 Data Equipment']],
         ['6. Analisis Beban & Cek Stabilitas', ['Beban angin & gempa', 'Daya dukung, geser, guling, buoyancy']],
@@ -232,7 +232,16 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
 
       <section className="rpt-section">
         <h2>3. Gambar Sketsa</h2>
+        <h3>3.1 Sketsa Fondasi</h3>
         <div className="rpt-sketch"><EquipmentFoundationSketch s={s} /></div>
+        <h3>3.2 Detail Penulangan</h3>
+        <RebarSketch B={nz(s.Bf) * 1000} L={nz(s.Lf) * 1000} h={nz(s.Hf) * 1000}
+          cover={nz(s.cover)} db={nz(s.Drl)} s={nz(s.srl)} nPed={0} />
+        <p className="rpt-note2">
+          Jaring tulangan bawah dua arah Ø{f(s.Drl, 0)}-{f(s.srl, 0)} mm, selimut beton {f(s.cover, 0)} mm —
+          sesuai input kalkulasi (dipakai pada cek lentur &amp; tulangan minimum §7). Anchor bolt
+          {` ${f(s.n_bolt, 0)} × Ø${f(s.d_bolt, 0)}`} mm tertanam {f(s.h_anchor, 0)} mm (detail pada §7).
+        </p>
       </section>
 
       <section className="rpt-section">

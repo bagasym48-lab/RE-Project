@@ -4,7 +4,7 @@
 // Setiap sub-tab bisa dicetak (laporan A4) — struktur & gaya mengikuti
 // laporan kalkulasi (ReportCover, pengantar teoritis, tabel hasil).
 import { useState } from 'react';
-import { FDDefs, ReportCover, ReportTOC, TheoryIntro, ItemsTable, RunningHeader, ReportPaged, defProject } from './reportKit.jsx';
+import { FDDefs, ReportCover, ReportTOC, TheoryIntro, ItemsTable, RunningHeader, ReportPaged, RebarSketch, defProject } from './reportKit.jsx';
 
 const rupiah = (n) => 'Rp ' + Math.round(Number(n) || 0).toLocaleString('id-ID');
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -255,6 +255,9 @@ function MtoPondasi({ fd, project }) {
         ['Harga beton (Rp/m³)', rupiah(g('hBeton'))],
         ['Harga besi (Rp/kg)', rupiah(g('hBesi'))],
       ]}
+      sketch={<RebarSketch B={B} L={L} h={h} cover={cover} db={fD} s={fS}
+        nPed={np} cPed={c2} sPed={fg('s_ped')}
+        pedBarsLabel={`${Math.round(g('pvN'))}Ø${Math.round(g('pvD'))} · sengkang Ø${Math.round(g('tieD'))}-${Math.round(g('tieS'))}`} />}
       theoryTitle="Prinsip Material Take-Off pondasi telapak"
       theoryRefs="SNI 2847:2019 · praktik estimasi kuantitas"
       theory={<>
