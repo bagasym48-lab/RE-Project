@@ -169,7 +169,11 @@ on every doc status change, so each doc shows a *Direvisi N×* badge + a collaps
 (revision count = number of `revisi` events). **`project_comments`** holds per-project blocker
 notes (with a `kategori`: `tunggu_disiplin`/`data_vendor`/…) written by engineer/leader and read by
 all, shown under the Kurva-S so a leader can see *why* progress is flat — a "progress belum bergerak
-N hari" prompt appears when the S-curve stalls ≥3 days with <100%. Both are RLS read-all; events
+N hari" prompt appears when the S-curve stalls ≥3 days with <100%. The **S-curve follows the calendar**
+(`SCurve` in `Charts.jsx`): the actual line is a **step function** (cumulative % held flat, jumping
+only at each input date) that is **extended flat to today**, so a period with no input reads as a
+horizontal line rather than stopping at the last input; a dashed **"hari ini"** marker + `today`/
+`todayMs` in the x-domain keep the chart advancing day-by-day. Both tables are RLS read-all; events
 insert **only** via the trigger (tamper-proof), comments insert engineer/leader + delete-own. Like
 the project tables, **§6 must be run in the Supabase SQL editor**.
 

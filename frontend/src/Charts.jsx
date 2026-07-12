@@ -17,11 +17,18 @@ export function SCurve({ logs, startDate, targetDate }) {
 
   if (!pts.length && !targetDate) return <p className="empty">Belum ada data untuk kurva-S.</p>;
 
-  const W = 540, H = 250, ML = 40, MR = 16, MT = 16, MB = 38;
+  const W = 540, H = 250, ML = 40, MR = 16, MT = 22, MB = 38;
   const plotW = W - ML - MR, plotH = H - MT - MB;
 
+  // Hari ini (tengah malam lokal) — kurva aktual mengikuti kalender: nilai
+  // kumulatif ditahan datar sejak input terakhir sampai hari ini, sehingga
+  // grafik tetap "berjalan" walau tidak ada input harian.
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const todayMs = toMs(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
+
   const startMs = startDate ? toMs(startDate) : (pts.length ? pts[0].x : toMs(targetDate));
-  const xs = [startMs, ...pts.map((p) => p.x)];
+  const xs = [startMs, todayMs, ...pts.map((p) => p.x)];
   if (targetDate) xs.push(toMs(targetDate));
   let t0 = Math.min(...xs), t1 = Math.max(...xs);
   if (t1 <= t0) t1 = t0 + DAY;
@@ -31,10 +38,25 @@ export function SCurve({ logs, startDate, targetDate }) {
   const yTicks = [0, 25, 50, 75, 100];
 
   const planPath = targetDate ? `M ${sx(startMs)} ${sy(0)} L ${sx(toMs(targetDate))} ${sy(100)}` : null;
-  const actPath = pts.length ? 'M ' + pts.map((p) => `${sx(p.x)} ${sy(p.y)}`).join(' L ') : null;
-  const areaPath = pts.length
-    ? `M ${sx(pts[0].x)} ${sy(0)} ` + pts.map((p) => `L ${sx(p.x)} ${sy(p.y)} `).join('') + `L ${sx(pts[pts.length - 1].x)} ${sy(0)} Z`
-    : null;
+
+  // Kurva aktual = fungsi tangga: nilai ditahan di level sebelumnya sampai
+  // tanggal input berikutnya (lonjakan vertikal), lalu diperpanjang datar
+  // hingga hari ini. Titik lingkaran hanya di tanggal input yang sebenarnya.
+  let actPath = null, areaPath = null;
+  if (pts.length) {
+    const last = pts[pts.length - 1];
+    const endX = Math.max(last.x, todayMs);
+    const edge = [`${sx(pts[0].x)},${sy(pts[0].y)}`];
+    for (let i = 1; i < pts.length; i++) {
+      edge.push(`${sx(pts[i].x)},${sy(pts[i - 1].y)}`); // datar di level lama
+      edge.push(`${sx(pts[i].x)},${sy(pts[i].y)}`);      // lonjakan saat input
+    }
+    if (endX > last.x) edge.push(`${sx(endX)},${sy(last.y)}`); // datar sampai hari ini
+    actPath = 'M ' + edge.join(' L ');
+    areaPath = `M ${sx(pts[0].x)} ${sy(0)} L ` + edge.join(' L ') + ` L ${sx(endX)} ${sy(0)} Z`;
+  }
+
+  const showToday = todayMs > t0;
 
   return (
     <div className="chart-wrap">
@@ -63,11 +85,19 @@ export function SCurve({ logs, startDate, targetDate }) {
         {areaPath && <path d={areaPath} fill="url(#scArea)" />}
         {planPath && <path className="plan" d={planPath} />}
         {actPath && <path d={actPath} fill="none" stroke="url(#scLine)" strokeWidth="2.6" strokeLinejoin="round" strokeLinecap="round" />}
+        {showToday && (
+          <g>
+            <line className="today" x1={sx(todayMs)} y1={MT - 6} x2={sx(todayMs)} y2={sy(0)} />
+            <text className="ax today-lbl" x={sx(todayMs)} y={MT - 9}
+              textAnchor={sx(todayMs) > W - MR - 40 ? 'end' : 'middle'}>hari ini</text>
+          </g>
+        )}
         {pts.map((p, i) => <circle key={i} className="pt" cx={sx(p.x)} cy={sy(p.y)} r="3.2" />)}
       </svg>
       <div className="chart-legend">
         <span><i className="plan" />rencana</span>
         <span><i className="actual" />aktual</span>
+        <span><i className="today" />hari ini</span>
       </div>
     </div>
   );
