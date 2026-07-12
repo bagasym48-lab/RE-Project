@@ -499,7 +499,12 @@ table.rpt-table tr { break-inside: avoid; }
 
 /* ---- Diagram gaya dalam (SFD/BMD) ---- */
 .fd-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; break-inside: avoid; }
+/* Diagram gaya dalam kritis selebar halaman (tepi ke tepi) */
+.fd-full { width: 100%; margin: 10px 0 2px; break-inside: avoid; }
+.fd-full figure.fd { margin: 0; }
+.fd-full svg.draw { width: 100%; height: auto; display: block; }
 figure.fd { margin: 0; }
+figure.fd.fd-wide svg.draw { width: 100%; height: auto; display: block; }
 figure.fd figcaption { font-size: 9.5px; font-weight: 700; color: var(--navy); text-align: center; margin-bottom: 2px; }
 figure.fd svg.draw { background: #fff; }
 .fd-mem { stroke: #37474f; stroke-width: 3; fill: none; stroke-linecap: round; }

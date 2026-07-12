@@ -425,7 +425,7 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
             sub={<>{f(i.Nu)}/{f(i.phiNn)} + {f(i.Vu)}/{f(i.phiVn)}</>} val={f(i.inter, 3)} ok={r.checks.angkur_interaksi.ok} />
         </DerivGroup>
 
-        <div className="fd-row">
+        <div className="fd-full">
           <FootingFullForceDiagram
             B={nz(s.Bf)} a={aX} cCol={nz(s.Beq)} nPed={1}
             w={i.qu_f} Vmax={VmaxX} Mmax={i.Mux}

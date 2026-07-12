@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview", "--prefix", "frontend", "--", "--port", "4173", "--strictPort"],
       "port": 4173
+    },
+    {
+      "name": "portfolio",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5599", "--directory", "D:/Portofolio-Bagas"],
+      "port": 5599
     }
   ]
 }

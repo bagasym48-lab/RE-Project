@@ -731,7 +731,7 @@ function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcNa
             sub={<>{f(se.Si)}+{f(se.Sc1)}+{f(se.Sc2)}</>} val={f(se.Stot)} unit="mm" ok={se.ok} />
         </DerivGroup>
 
-        <div className="fd-row">
+        <div className="fd-full">
           <FootingFullForceDiagram
             B={B} a={Lll} cCol={nz(fd.c2)} sPed={nz(fd.s_ped)} nPed={nped}
             w={inf.qu_f} Vmax={inf.qu_f * aCant} Mmax={ck.lentur.demand}
