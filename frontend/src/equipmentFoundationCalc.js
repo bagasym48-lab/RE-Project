@@ -28,6 +28,7 @@ export const def = {
   gc: 24,                       // kN/m³
   // Beton & tulangan footing (mm, MPa)
   fc: 28, fy: 420, cover: 75, Drl: 16, srl: 150,
+  lapis: 2,           // lapis jaring tulangan (1 = bawah; 2 = atas+bawah) — utk sketsa/MTO
   // Tanah / daya dukung (kPa, kN/m³, m)
   phi: 8.886, c: 3.92, gs: 17.96, gw: 9.81, Df: 0.55, SF_bc: 3,
   beta_i: 0,                    // sudut inklinasi beban (°)

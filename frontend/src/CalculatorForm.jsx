@@ -120,6 +120,9 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
   const [soil, setSoil] = useState(defaultSoil);
   const [loads, setLoads] = useState(defaultLoads);
   const [Sds, setSds] = useState(defaultSds);
+  // Lapis jaring tulangan footing (1 = bawah; 2 = atas+bawah) — hanya utk
+  // sketsa/laporan; cek lentur tetap dari lapis tarik (bawah), tidak ke backend.
+  const [lapis, setLapis] = useState(2);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -248,6 +251,8 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
               {DIMENSI.map(([k, l]) => (
                 <Field key={k} k={k} label={l} value={fd[k]} onChange={updFd} type="number" step="any" />
               ))}
+              <Field k="lapis" label="lapis jaring tulangan (1=bawah, 2=atas+bawah)" value={lapis}
+                onChange={(k, v) => setLapis(v)} type="number" step="1" min={1} max={2} />
             </div>
           </fieldset>
 
@@ -398,7 +403,7 @@ export default function CalculatorForm({ userId, profile, userEmail, fd: fdProp,
         </aside>
       </div>
 
-      {result && <ReportSheet fd={fd} soil={soil} loads={loads} Sds={Sds} result={result} project={project} engineerName={engineerName} qcName={qcName} />}
+      {result && <ReportSheet fd={fd} soil={soil} loads={loads} Sds={Sds} lapis={lapis} result={result} project={project} engineerName={engineerName} qcName={qcName} />}
     </div>
   );
 }
@@ -436,7 +441,7 @@ function ComboTable({ rows, mm }) {
 
 // ReportSheet — laporan A4 untuk dicetak/disimpan PDF. Disembunyikan di layar
 // (display:none), hanya tampil di @media print. Lihat .report-sheet di index.css.
-function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcName }) {
+function ReportSheet({ fd, soil, loads, Sds, lapis, result, project, engineerName, qcName }) {
   // Nilai turunan untuk substitusi rumus (geometri saja; hasil fisika dari backend).
   const nz = (v) => (Number.isFinite(+v) ? +v : 0);
   const B = nz(fd.B), L = nz(fd.L), h = nz(fd.h), Df = nz(fd.Df);
@@ -543,13 +548,14 @@ function ReportSheet({ fd, soil, loads, Sds, result, project, engineerName, qcNa
         )}
         <h3>3.2 Detail Penulangan Footing</h3>
         <RebarSketch B={B} L={L} h={h} cover={nz(fd.cover)} db={nz(fd.db)} s={nz(fd.srl)}
-          nPed={nped} cPed={nz(fd.c2)} sPed={nz(fd.s_ped)} />
+          lapis={nz(lapis) || 2} nPed={nped} cPed={nz(fd.c2)} sPed={nz(fd.s_ped)} />
         <p className="rpt-note2">
-          Tulangan bawah footing dua arah Ø{f(fd.db, 0)}-{f(fd.srl, 0)} mm
-          (±{Math.max(Math.floor((L - 2 * nz(fd.cover)) / Math.max(nz(fd.srl), 1)) + 1, 2)} batang arah X
-          + {Math.max(Math.floor((B - 2 * nz(fd.cover)) / Math.max(nz(fd.srl), 1)) + 1, 2)} batang arah Y),
-          selimut beton {f(fd.cover, 0)} mm — sesuai input kalkulasi (dipakai pada cek lentur &amp; tulangan
-          minimum §7). Detail tulangan pedestal (vertikal + sengkang) dirinci pada laporan MTO.
+          Tulangan footing dua arah Ø{f(fd.db, 0)}-{f(fd.srl, 0)} mm, {(nz(lapis) || 2) >= 2
+            ? 'dipasang 2 lapis (jaring atas & bawah)' : '1 lapis (jaring bawah)'}
+          {' '}(±{Math.max(Math.floor((L - 2 * nz(fd.cover)) / Math.max(nz(fd.srl), 1)) + 1, 2)} batang arah X
+          + {Math.max(Math.floor((B - 2 * nz(fd.cover)) / Math.max(nz(fd.srl), 1)) + 1, 2)} batang arah Y per lapis),
+          selimut beton {f(fd.cover, 0)} mm — sesuai input kalkulasi. Kapasitas lentur &amp; tulangan minimum (§7)
+          dihitung dari lapis tarik (bawah). Detail tulangan pedestal (vertikal + sengkang) dirinci pada laporan MTO.
         </p>
       </section>
 

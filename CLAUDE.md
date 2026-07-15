@@ -241,10 +241,14 @@ page; `items` = `[[main, [subs…]], …]`) → the numbered body (wrapped in `R
 Berat Satuan, Kondisi Tanah & Faktor Keamanan — `ItemsTable` "Item | Nilai" tables), **2. Data Input**
 (the raw input listing as `rpt-kv`), **3. Gambar Sketsa** (2D detail sketch only — no 3D; plus
 **§3.2 Detail Penulangan** via `RebarSketch` in `reportKit.jsx`: cross-section [dots = bars normal
-to the cut, line = parallel bars, cover/h/B dims] + plan view of the bottom mesh, labelled
+to the cut, line = parallel bars, cover/h/B dims] + plan view of the mesh, labelled
 `Ø{db}-{s}` with bar counts `floor((side−2·cover)/s)+1`; all inputs in **mm** — equipment passes
-`Bf·1000` etc. `nPed=0` = block/no pedestal; `pedBarsLabel` [only MTO knows pedestal rebar] draws
-indicative pedestal bars+ties. Styles `.rb-*` in `index.css`. Pipe support has no rebar → no §3.2), **4.
+`Bf·1000` etc. `lapis` prop (1|2): 2 draws BOTH top+bottom mats in the cross-section (labels switch
+to "atas & bawah … (2 lapis)"). Sources: pondasi dangkal = local `lapis` state in CalculatorForm
+(sketch-only, NOT sent to the API); equipment = `def.lapis` in `equipmentFoundationCalc.js`;
+MTO pondasi passes its own `lapis` param. `nPed=0` = block/no pedestal; `pedBarsLabel` [only MTO
+knows pedestal rebar] draws indicative pedestal bars+ties. Styles `.rb-*` in `index.css`.
+Pipe support has no rebar → no §3.2), **4.
 Kombinasi Beban** (load definitions + load-case/combination table), **5. Data Fondasi/Struktur**
 (dimension `ItemsTable`s), **6. Cek Stabilitas/Kapasitas**, **7. Desain & Penurunan**, and **8.
 Rekapitulasi**. Only main sections carry numbers; the derivation `DerivGroup`s inside §6/§7 use

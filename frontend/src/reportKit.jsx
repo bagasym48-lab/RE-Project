@@ -418,14 +418,16 @@ export function BeamForceDiagram({ L, P, Mmax, title = 'Gaya dalam beam (beban t
 const _clamp = (v, a, b) => Math.min(Math.max(v, a), b);
 
 // Detail penulangan footing utk laporan: potongan melintang (dot = batang
-// tegak lurus bidang potong, garis = batang sejajar) + denah jaring bawah.
+// tegak lurus bidang potong, garis = batang sejajar) + denah jaring.
 // Semua dimensi mm. nPed=0 → tanpa pedestal (blok equipment).
+// lapis: 1 = jaring bawah saja; 2 = jaring atas + bawah (keduanya digambar).
 // pedBarsLabel opsional (mis. "8Ø16 · sengkang Ø10-150") — bila diisi,
 // tulangan pedestal digambar indikatif + diberi label.
-export function RebarSketch({ B, L, h, cover, db, s, nPed = 1, cPed = 0, sPed = 0,
+export function RebarSketch({ B, L, h, cover, db, s, lapis = 1, nPed = 1, cPed = 0, sPed = 0,
   pedBarsLabel, topLabel = 'pedestal' }) {
   const Bn = Math.max(num(B), 1), Ln = Math.max(num(L), 1), hn = Math.max(num(h), 1);
   const cv = Math.max(num(cover), 0), dia = Math.max(num(db), 1), sp = Math.max(num(s), 1);
+  const nLap = Math.round(num(lapis, 1)) >= 2 ? 2 : 1;
   const nAcrossB = Math.max(Math.floor((Bn - 2 * cv) / sp) + 1, 2); // tersebar sepanjang B
   const nAcrossL = Math.max(Math.floor((Ln - 2 * cv) / sp) + 1, 2); // tersebar sepanjang L
   const barTxt = `Ø${f(dia, 0)}-${f(sp, 0)}`;
@@ -433,11 +435,12 @@ export function RebarSketch({ B, L, h, cover, db, s, nPed = 1, cPed = 0, sPed = 
   // ---------- Potongan melintang ----------
   const W1 = 380, H1 = 216, mx = 46;
   const bw = W1 - 2 * mx, x0 = mx, x1 = W1 - mx;
-  const hpx = _clamp((hn / Bn) * bw, 36, 82);
+  const hpx = _clamp((hn / Bn) * bw, nLap >= 2 ? 46 : 36, 82);
   const yBot = 158, yTop = yBot - hpx;
   const cpx = _clamp((cv / Bn) * bw, 4, 16);
   const nDots = Math.min(nAcrossB, 41);
-  const dotY = yBot - cpx - 3.5;
+  const dotY = yBot - cpx - 3.5;              // lapis bawah
+  const topDotY = yTop + cpx + 3.5;           // lapis atas (bila 2 lapis)
   const dxL = x0 + cpx + 3, dxR = x1 - cpx - 3;
   const dots = Array.from({ length: nDots }, (_, k) => dxL + (k / (nDots - 1)) * (dxR - dxL));
   const pedH = 30;
@@ -483,14 +486,27 @@ export function RebarSketch({ B, L, h, cover, db, s, nPed = 1, cPed = 0, sPed = 
           {centers.length > 0 && <text className="fd-face-lbl" x={W1 / 2} y={yTop - pedH - 4} textAnchor="middle">{topLabel}{pedBarsLabel ? ` — ${pedBarsLabel}` : ''}</text>}
           {/* footing */}
           <rect className="rb-conc" x={x0} y={yTop} width={bw} height={hpx} />
-          {/* tulangan bawah: garis (arah sejajar potongan) + titik (tegak lurus) */}
+          {/* lapis BAWAH: garis (batang sejajar potongan) + titik (tegak lurus) */}
           <line className="rb-bar" x1={dxL} y1={dotY - 5.5} x2={dxR} y2={dotY - 5.5} />
           {dots.map((x, i) => <circle key={i} className="rb-dot" cx={x} cy={dotY} r={2.4} />)}
-          <text className="rb-lbl" x={x0 + 8} y={dotY - 14} textAnchor="start">Tul. bawah 2 arah {barTxt}</text>
+          {/* lapis ATAS (bila 2 lapis) */}
+          {nLap >= 2 && (
+            <g>
+              <line className="rb-bar" x1={dxL} y1={topDotY + 5.5} x2={dxR} y2={topDotY + 5.5} />
+              {dots.map((x, i) => <circle key={i} className="rb-dot" cx={x} cy={topDotY} r={2.4} />)}
+            </g>
+          )}
+          {nLap >= 2 ? (
+            <text className="rb-lbl" x={x0 + 8} y={(topDotY + dotY) / 2 + 3} textAnchor="start">
+              Tul. atas &amp; bawah 2 arah {barTxt} (2 lapis)
+            </text>
+          ) : (
+            <text className="rb-lbl" x={x0 + 8} y={dotY - 14} textAnchor="start">Tul. bawah 2 arah {barTxt}</text>
+          )}
           {/* dimensi B */}
           <line className="fd-axis" x1={x0} y1={yBot + 10} x2={x1} y2={yBot + 10} />
           <text className="fd-dim" x={W1 / 2} y={yBot + 22} textAnchor="middle">B = {f(Bn, 0)} mm</text>
-          {/* dimensi h + selimut di kanan */}
+          {/* dimensi h + selimut */}
           <line className="fd-axis" x1={x1 + 9} y1={yTop} x2={x1 + 9} y2={yBot} />
           <text className="fd-dim" x={x1 + 14} y={(yTop + yBot) / 2} textAnchor="middle" transform={`rotate(-90 ${x1 + 14} ${(yTop + yBot) / 2})`}>h = {f(hn, 0)}</text>
           <line className="fd-axis" x1={x0 - 9} y1={dotY} x2={x0 - 9} y2={yBot} />
@@ -499,7 +515,7 @@ export function RebarSketch({ B, L, h, cover, db, s, nPed = 1, cPed = 0, sPed = 
       </figure>
 
       <figure className="fd">
-        <figcaption>Denah — jaring tulangan bawah 2 arah</figcaption>
+        <figcaption>{nLap >= 2 ? 'Denah — jaring tulangan 2 arah (atas & bawah identik)' : 'Denah — jaring tulangan bawah 2 arah'}</figcaption>
         <svg className="draw" viewBox={`0 0 ${W2} ${H2}`} role="img" aria-label="Denah tulangan footing">
           <rect className="rb-conc" x={px0} y={py0} width={pw} height={ph} />
           {vX.map((x, i) => <line key={`v${i}`} className="rb-grid" x1={x} y1={py0 + inr} x2={x} y2={py0 + ph - inr} />)}
@@ -507,7 +523,7 @@ export function RebarSketch({ B, L, h, cover, db, s, nPed = 1, cPed = 0, sPed = 
           {pCenters.map((c, i) => (
             <rect key={i} className="rb-ped-dash" x={c - wpp / 2} y={py0 + ph / 2 - wpp / 2} width={wpp} height={wpp} />
           ))}
-          <text className="rb-lbl" x={W2 / 2} y={py0 - 8} textAnchor="middle">{barTxt} (arah X &amp; Y)</text>
+          <text className="rb-lbl" x={W2 / 2} y={py0 - 8} textAnchor="middle">{barTxt} (arah X &amp; Y{nLap >= 2 ? ' · 2 lapis' : ''})</text>
           <text className="fd-dim" x={W2 / 2} y={py0 + ph + 14} textAnchor="middle">B = {f(Bn, 0)} mm · {nAcrossB} btg</text>
           <text className="fd-dim" x={px0 - 8} y={py0 + ph / 2} textAnchor="middle" transform={`rotate(-90 ${px0 - 8} ${py0 + ph / 2})`}>L = {f(Ln, 0)} mm · {nAcrossL} btg</text>
         </svg>

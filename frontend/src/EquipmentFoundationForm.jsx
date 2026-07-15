@@ -35,6 +35,7 @@ const GROUPS = [
   ['Beton & tulangan footing', [
     ['fc', "f'c beton (MPa)"], ['fy', 'fy tulangan (MPa)'],
     ['cover', 'selimut beton (mm)'], ['Drl', 'Ø tulangan (mm)'], ['srl', 'spasi tulangan (mm)'],
+    ['lapis', 'lapis jaring (1=bawah, 2=atas+bawah)'],
   ]],
   ['Tanah & daya dukung (Meyerhof)', [
     ['phi', 'sudut geser ϕ (°)'], ['c', 'kohesi c (kPa)'], ['gs', 'γ tanah jenuh (kN/m³)'],
@@ -236,10 +237,12 @@ function EquipmentReportSheet({ s, r, project, engineerName, qcName }) {
         <div className="rpt-sketch"><EquipmentFoundationSketch s={s} /></div>
         <h3>3.2 Detail Penulangan</h3>
         <RebarSketch B={nz(s.Bf) * 1000} L={nz(s.Lf) * 1000} h={nz(s.Hf) * 1000}
-          cover={nz(s.cover)} db={nz(s.Drl)} s={nz(s.srl)} nPed={0} />
+          cover={nz(s.cover)} db={nz(s.Drl)} s={nz(s.srl)} lapis={nz(s.lapis) || 2} nPed={0} />
         <p className="rpt-note2">
-          Jaring tulangan bawah dua arah Ø{f(s.Drl, 0)}-{f(s.srl, 0)} mm, selimut beton {f(s.cover, 0)} mm —
-          sesuai input kalkulasi (dipakai pada cek lentur &amp; tulangan minimum §7). Anchor bolt
+          Jaring tulangan dua arah Ø{f(s.Drl, 0)}-{f(s.srl, 0)} mm, {(nz(s.lapis) || 2) >= 2
+            ? 'dipasang 2 lapis (atas & bawah)' : '1 lapis (bawah)'}, selimut beton {f(s.cover, 0)} mm —
+          sesuai input kalkulasi. Kapasitas lentur &amp; tulangan minimum (§7) dihitung dari lapis
+          tarik (bawah). Anchor bolt
           {` ${f(s.n_bolt, 0)} × Ø${f(s.d_bolt, 0)}`} mm tertanam {f(s.h_anchor, 0)} mm (detail pada §7).
         </p>
       </section>

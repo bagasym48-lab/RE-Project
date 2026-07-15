@@ -256,7 +256,7 @@ function MtoPondasi({ fd, project }) {
         ['Harga besi (Rp/kg)', rupiah(g('hBesi'))],
       ]}
       sketch={<RebarSketch B={B} L={L} h={h} cover={cover} db={fD} s={fS}
-        nPed={np} cPed={c2} sPed={fg('s_ped')}
+        lapis={Math.max(g('lapis'), 1)} nPed={np} cPed={c2} sPed={fg('s_ped')}
         pedBarsLabel={`${Math.round(g('pvN'))}Ø${Math.round(g('pvD'))} · sengkang Ø${Math.round(g('tieD'))}-${Math.round(g('tieS'))}`} />}
       theoryTitle="Prinsip Material Take-Off pondasi telapak"
       theoryRefs="SNI 2847:2019 · praktik estimasi kuantitas"
