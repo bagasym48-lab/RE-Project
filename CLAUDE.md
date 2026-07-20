@@ -192,6 +192,18 @@ the FEED doc — ASCE 7 wind, SNI 1726 seismic Cs, pile Qmax/Qall & Tmax/Tall, B
 settlement; STAAD/FEA remains the real reference, flagged as educational). The other disciplines render
 a "segera hadir" placeholder.
 
+**Pipe-support pipe loads have two modes** (`def.loadMode`): **`manual`** (default — operating/
+hydrotest/thermal Fx,Fz from the piping dept, editable fields `P_empty`/`P_oper`/`P_test`/`Tx`/`Tz`)
+or **`trial`** — loads derived from **`span` (m) + `Dpipe` (nominal inch)** via `pipeLoads()` in
+`PipeSupportForm.jsx`, calibrated to `trial pipa.xlsx` (sheet ` iii. Piping Data CGS 1`): `Fy =
+kg/m·span·9.81/1000`; empty uses the pipe-only kg/m, operating & test both use pipe-full-of-water
+kg/m (**test = operating**); thermal `Fx = max(0.075,0.3)·test = 0.3·test`, `Fz = 0.25·Fx`. The
+per-diameter kg/m come from `PIPE_SCHED` (embedded copy of the sheet's `BH6:BM23` table, 0.5″–24″,
+`pw = empty + water`). `compute()` resolves the effective loads by mode into `info.loads`
+{empty,oper,test,Tx,Tz} which drive every downstream check and the report's §4 load resume + §2
+pipe data; `Tmax` (uplift) uses the lightest case (empty). Manual mode reproduces the old numbers
+exactly (verified: verdict + all 7 checks unchanged). `pipeLoads`/`pipeRow`/`PIPE_SCHED` are exported.
+
 **Pondasi Equipment** (`EquipmentFoundationForm.jsx` + `equipmentFoundationCalc.js` +
 `EquipmentFoundationSketch.jsx`) is a block foundation for machinery — **no pedestal**, the
 equipment sits on the block and anchor bolts take its tension/shear. Calibrated against FEED doc

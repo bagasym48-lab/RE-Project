@@ -16,7 +16,11 @@
       "PowerShell(npm run dev --prefix frontend)",
       "PowerShell(npm install --prefix frontend @supabase/supabase-js 2>&1)",
       "Bash(curl -s \"https://re-project-app.vercel.app/\")",
-      "Bash(curl -s \"https://re-project-app.vercel.app/assets/index-BAnN7HTv.js\")"
+      "Bash(curl -s \"https://re-project-app.vercel.app/assets/index-BAnN7HTv.js\")",
+      "Bash(markitdown \"trial pipa.xlsx\")",
+      "Bash(python -c \"import markitdown; print\\('ok'\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(python -m pip install openpyxl --quiet)"
     ]
   }
 }

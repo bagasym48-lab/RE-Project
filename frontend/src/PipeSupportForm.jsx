@@ -13,6 +13,58 @@ import { Step, DerivGroup, TheoryIntro, Frac, FDDefs, ColumnForceDiagram, BeamFo
 
 const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0; };
 const PI = Math.PI;
+const G_ACC = 9.81;   // gravitasi (m/s²) untuk konversi berat kg → kN
+
+// ---------------------------------------------------------------------------
+// Skedul pipa baja (ref: "trial pipa.xlsx" — tabel BH6:BM23). Berat per meter
+// untuk kondisi kosong & pipa+air (test/operasi). dia_mm = "Diameter pipe (mm)"
+// pada tabel referensi. pw = empty + water (isi air penuh).
+// ---------------------------------------------------------------------------
+const PIPE_SCHED = [
+  { nps: 0.5, od_in: 0.84, dia_mm: 15.8, empty: 1.27, water: 0.2, pw: 1.47 },
+  { nps: 0.75, od_in: 1.05, dia_mm: 20.93, empty: 1.68, water: 0.34, pw: 2.02 },
+  { nps: 1, od_in: 1.315, dia_mm: 26.64, empty: 2.5, water: 0.56, pw: 3.06 },
+  { nps: 1.5, od_in: 1.9, dia_mm: 40.9, empty: 4.05, water: 1.31, pw: 5.36 },
+  { nps: 2, od_in: 2.375, dia_mm: 52.51, empty: 5.44, water: 2.17, pw: 7.61 },
+  { nps: 2.5, od_in: 2.875, dia_mm: 62.71, empty: 8.63, water: 3.09, pw: 11.72 },
+  { nps: 3, od_in: 3.5, dia_mm: 77.92, empty: 11.29, water: 4.77, pw: 16.06 },
+  { nps: 4, od_in: 4.5, dia_mm: 102.26, empty: 16.08, water: 8.21, pw: 24.29 },
+  { nps: 5, od_in: 5.563, dia_mm: 128.2, empty: 21.77, water: 12.91, pw: 34.68 },
+  { nps: 6, od_in: 6.625, dia_mm: 154.08, empty: 28.27, water: 18.64, pw: 46.91 },
+  { nps: 8, od_in: 8.625, dia_mm: 202.74, empty: 42.55, water: 32.28, pw: 74.83 },
+  { nps: 10, od_in: 10.75, dia_mm: 254.51, empty: 60.31, water: 50.87, pw: 111.18 },
+  { nps: 12, od_in: 12.75, dia_mm: 304.79, empty: 73.86, water: 72.96, pw: 146.82 },
+  { nps: 14, od_in: 14, dia_mm: 333.34, empty: 93.226, water: 87.27, pw: 180.496 },
+  { nps: 16, od_in: 16, dia_mm: 387.35, empty: 94.55, water: 117.841, pw: 212.391 },
+  { nps: 18, od_in: 18, dia_mm: 438.15, empty: 105.159, water: 150.777, pw: 255.936 },
+  { nps: 20, od_in: 19.25, dia_mm: 488.95, empty: 117.092, water: 187.767, pw: 304.859 },
+  { nps: 24, od_in: 23.25, dia_mm: 590.55, empty: 140.958, water: 273.907, pw: 414.865 },
+];
+
+// Baris skedul untuk diameter nominal (inch). Exact match; jika tak ada → terdekat.
+export function pipeRow(nps) {
+  const d = n(nps);
+  let best = PIPE_SCHED[0];
+  for (const r of PIPE_SCHED) {
+    if (r.nps === d) return r;
+    if (Math.abs(r.nps - d) < Math.abs(best.nps - d)) best = r;
+  }
+  return best;
+}
+
+// Beban support akibat berat pipa untuk satu span (mengikuti "trial pipa.xlsx"):
+//   Fy = (kg/m) · span · 9.81 / 1000  [kN]  · test = operasi (pipa penuh air)
+//   Thermal Fx = max(7.5%·test ; 30%·test) [tanpa data CAESAR] ; Fz = 0.25·Fx
+export function pipeLoads(nps, span) {
+  const r = pipeRow(nps);
+  const L = n(span);
+  const empty = (r.empty * L * G_ACC) / 1000;
+  const oper = (r.pw * L * G_ACC) / 1000;
+  const test = oper;                       // Z = Y (pipa penuh air)
+  const Tx = Math.max(0.075 * test, 0.3 * test); // MAX(7.5% ; 30%) → 0.3·test
+  const Tz = 0.25 * Tx;
+  return { empty, oper, test, Tx, Tz, row: r };
+}
 
 export const def = {
   // Geometri
@@ -20,7 +72,11 @@ export const def = {
   depth: 2.51,     // kedalaman ke titik fixity di bawah tanah (m)
   L: 6.30,         // panjang beam / bentang pipa (m)
   Dpipe: 20,       // diameter pipa (in)
-  // Beban pipa vertikal (kN) di pile
+  // Sumber beban: 'manual' (dari divisi piping) | 'trial' (dihitung dari span)
+  loadMode: 'manual',
+  span: 4.25,      // panjang span pipa (m) — dipakai pada mode trial
+  // Beban pipa vertikal (kN) di pile — dipakai pada mode manual
+  P_empty: 24.45,  // kosong (pipa saja)
   P_oper: 63.67,   // operation
   P_test: 64.69,   // hydrotest / test
   // Beban termal (kN) horizontal
@@ -42,6 +98,16 @@ function compute(s) {
   const Htot = g('H_above') + g('depth');            // panjang kantilever dari fixity (m)
   const Dm = g('Dpipe') * 0.0254;                     // diameter pipa (m)
 
+  // --- Beban pipa: manual (dari piping) atau trial (dihitung dari span) ---
+  const trial = s.loadMode === 'trial';
+  const pl = pipeLoads(g('Dpipe'), g('span'));
+  const P_empty = trial ? pl.empty : g('P_empty');    // kosong (Fy)
+  const P_oper = trial ? pl.oper : g('P_oper');        // operasi (Fy)
+  const P_test = trial ? pl.test : g('P_test');        // test/hydrotest (Fy)
+  const Tx = trial ? pl.Tx : g('Tx');                  // termal arah X
+  const Tz = trial ? pl.Tz : g('Tz');                  // termal arah Z
+  const loads = { empty: P_empty, oper: P_oper, test: P_test, Tx, Tz };
+
   // --- Angin ---
   const qh = 0.613 * g('Kz') * g('Kzt') * g('Kd') * g('Ke') * g('V') ** 2; // N/m²
   const Pwind = (qh * g('G') * g('Cf')) / 1000;        // kN/m²
@@ -52,7 +118,7 @@ function compute(s) {
   const Cs = (g('SDS') * g('Ie')) / g('R');
   const CsMin = Math.max(0.044 * g('SDS') * g('Ie'), 0.01);
   const CsUse = Math.max(Cs, CsMin);
-  const Fseis = CsUse * g('P_oper');                   // gaya gempa lateral (kN)
+  const Fseis = CsUse * P_oper;                        // gaya gempa lateral (kN)
 
   // --- Penampang baja (pipa) ---
   const Do = g('Do'), t = g('t');
@@ -65,8 +131,8 @@ function compute(s) {
 
   // --- Gaya dalam (model kantilever) ---
   const seisAmp = 1 + 0.14 * g('SDS');                 // amplifikasi seismik vertikal (doc)
-  const Pr = Math.max(g('P_oper') * seisAmp, g('P_test')); // aksial maks (kN) ≈ Qmax
-  const Hlat = Math.sqrt((Math.abs(g('Tx')) + Fwind) ** 2 + Math.abs(g('Tz')) ** 2); // resultan lateral (kN)
+  const Pr = Math.max(P_oper * seisAmp, P_test);       // aksial maks (kN) ≈ Qmax
+  const Hlat = Math.sqrt((Math.abs(Tx) + Fwind) ** 2 + Math.abs(Tz) ** 2); // resultan lateral (kN)
   const Mr = Hlat * Htot;                             // momen dasar kolom (kNm)
 
   // --- Rasio struktur (AISC H1, disederhanakan) ---
@@ -79,7 +145,7 @@ function compute(s) {
   // --- Defleksi vertikal beam: beban pipa sebagai beban TERPUSAT di tengah beam ---
   // (mengacu dokumen: "input beban di tengah pipa, beban terpusat pada member")
   const Lmm = g('L') * 1000;
-  const dv = (g('P_oper') * 1000) * Lmm ** 3 / (48 * EI); // mm (P di tengah, balok simple)
+  const dv = (P_oper * 1000) * Lmm ** 3 / (48 * EI);      // mm (P di tengah, balok simple)
   const dvAll = Lmm / 240;                                // L/240 (serviceability beban terpusat)
 
   // --- Displacement horizontal kolom (kantilever, F·H³/3EI) ---
@@ -91,9 +157,10 @@ function compute(s) {
 
   // --- Pile: tekan, tarik, lateral ---
   const Qmax = Pr;
-  const Tmax = Math.min(g('P_oper'), g('P_test'), g('P_oper') * 0.5); // single pile → biasanya tekan
+  // Kondisi vertikal teringan = pipa kosong (paling rawan uplift bila ada momen guling).
+  const Tmax = Math.min(P_empty, P_oper, P_test);     // single pile → biasanya tekan (Tmax>0)
   const noTension = Tmax >= 0;
-  const Hmax = Math.sqrt((Math.abs(g('Tx')) + Fwind) ** 2 + Math.abs(g('Tz')) ** 2);
+  const Hmax = Math.sqrt((Math.abs(Tx) + Fwind) ** 2 + Math.abs(Tz) ** 2);
 
   // --- Penurunan pile (elastis, Braja Das) ---
   const Dp = g('Dpile'), Lp = g('Lpile');
@@ -124,7 +191,8 @@ function compute(s) {
     info: { Htot, Dm, qh, Pwind, Puse, Fwind, Cs, CsMin, CsUse, Fseis, A, I, Z, Di, EI,
             seisAmp, Pr, Hlat, Mr, Hmax, Pc, Mc, ratioPM, Tmax, noTension,
             dv, dvAll, dhWind, dhWindAll, dhSeis, dhSeisAll, Lmm, Hmm,
-            se1, se2, se3, se, Es, Iws, Qws, Qwp, Ap, perim: p, mu2 },
+            se1, se2, se3, se, Es, Iws, Qws, Qwp, Ap, perim: p, mu2,
+            trial, loads, pl },
     checks, overall_ok,
   };
 }
@@ -148,14 +216,81 @@ function Field({ k, label, value, onChange, step = 'any' }) {
   );
 }
 
+const LOAD_ROWS = [
+  ['empty', 'P_empty', 'beban kosong (Fy)'],
+  ['oper', 'P_oper', 'beban operation (Fy)'],
+  ['test', 'P_test', 'beban hydrotest (Fy)'],
+  ['Tx', 'Tx', 'thermal arah X (Fx)'],
+  ['Tz', 'Tz', 'thermal arah Z (Fz)'],
+];
+
+// Fieldset beban pipa dengan 2 mode: manual (dari divisi piping) atau trial
+// (dihitung dari span + diameter, mengacu "trial pipa.xlsx").
+function BebanSection({ s, upd, loads, trial }) {
+  const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—');
+  return (
+    <fieldset className="group">
+      <legend>Beban pipa &amp; termal (kN)</legend>
+      <p className="loads-note">
+        <b>Sumber beban:</b> normalnya beban operation, hydrotest &amp; termal (X, Z) diberikan
+        <b> divisi piping</b> (mode Manual). Bila belum tersedia, pilih <b>Trial</b> — beban kosong,
+        operation, hydrotest &amp; termal dihitung otomatis dari <b>span</b> &amp; <b>diameter pipa</b>
+        (berat pipa penuh air, ref. <i>trial pipa</i>).
+      </p>
+      <div className="fields">
+        <label className="field" title="Sumber beban pipa">
+          <span>Sumber beban</span>
+          <select value={s.loadMode || 'manual'} onChange={(e) => upd('loadMode', e.target.value)}>
+            <option value="manual">Manual — dari divisi piping</option>
+            <option value="trial">Trial — hitung dari span &amp; diameter</option>
+          </select>
+        </label>
+        <label className="field" title="diameter nominal pipa (inch)">
+          <span>Diameter pipa (in)</span>
+          <select value={s.Dpipe} onChange={(e) => upd('Dpipe', e.target.value)}>
+            {PIPE_SCHED.map((p) => <option key={p.nps} value={p.nps}>{p.nps}″ ({p.dia_mm} mm)</option>)}
+          </select>
+        </label>
+        {trial && (
+          <Field k="span" label="panjang span pipa (m)" value={s.span} onChange={upd} />
+        )}
+      </div>
+
+      {trial ? (
+        <>
+          <div className="mto-link-note" style={{ marginTop: 8 }}>
+            🔧 Beban dihitung dari span {f2(n(s.span))} m &amp; pipa {n(s.Dpipe)}″
+            (berat {f2(pipeRow(s.Dpipe).empty)}/{f2(pipeRow(s.Dpipe).pw)} kg/m kosong/penuh air).
+          </div>
+          <div className="lc-wrap">
+            <table className="lc loads-tbl">
+              <thead><tr><th>Beban</th><th>Nilai (kN)</th></tr></thead>
+              <tbody>
+                {LOAD_ROWS.map(([lk, , lbl]) => (
+                  <tr key={lk}>
+                    <td className="ld-name">{lbl}</td>
+                    <td className="num"><b>{f2(loads[lk])}</b></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : (
+        <div className="fields" style={{ marginTop: 8 }}>
+          {LOAD_ROWS.map(([, fk, lbl]) => (
+            <Field key={fk} k={fk} label={lbl} value={s[fk]} onChange={upd} />
+          ))}
+        </div>
+      )}
+    </fieldset>
+  );
+}
+
 const GROUPS = [
   ['Geometri', [
     ['H_above', 'tinggi di atas tanah (m)'], ['depth', 'kedalaman pipe di bawah tanah (m)'],
-    ['L', 'panjang beam = pipa horiz. (m)'], ['Dpipe', 'diameter pipe (in)'],
-  ]],
-  ['Beban pipa & termal (kN)', [
-    ['P_oper', 'beban operation (Fy)'], ['P_test', 'beban hydrotest (Fy)'],
-    ['Tx', 'thermal arah X'], ['Tz', 'thermal arah Z'],
+    ['L', 'panjang beam = pipa horiz. (m)'],
   ]],
   ['Angin & gempa', [
     ['V', 'kecepatan angin V (m/s)'], ['Cf', 'koef. gaya Cf'], ['G', 'gust factor G'], ['Pmin', 'angin min (kN/m²)'],
@@ -200,13 +335,16 @@ export default function PipeSupportForm({ s: sProp, setS: setSProp, project: pro
       <div className="layout">
         <section className="inputs">
           <ProjectInfoForm project={project} onChange={updProject} />
-          {GROUPS.map(([title, fields]) => (
-            <fieldset className="group" key={title}>
-              <legend>{title}</legend>
-              <div className="fields">
-                {fields.map(([k, l]) => <Field key={k} k={k} label={l} value={s[k]} onChange={upd} />)}
-              </div>
-            </fieldset>
+          {GROUPS.map(([title, fields], gi) => (
+            <div key={title} style={{ display: 'contents' }}>
+              <fieldset className="group">
+                <legend>{title}</legend>
+                <div className="fields">
+                  {fields.map(([k, l]) => <Field key={k} k={k} label={l} value={s[k]} onChange={upd} />)}
+                </div>
+              </fieldset>
+              {gi === 0 && <BebanSection s={s} upd={upd} loads={r.info.loads} trial={r.info.trial} />}
+            </div>
           ))}
         </section>
 
@@ -261,7 +399,8 @@ export default function PipeSupportForm({ s: sProp, setS: setSProp, project: pro
 // Laporan A4 — disembunyikan di layar (.report-sheet display:none), tampil saat cetak.
 function PipeReportSheet({ s, r, project, engineerName, qcName }) {
   const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : '—');
-  const Mbeam = (n(s.P_oper) * n(s.L)) / 4;
+  const ld = r.info.loads;
+  const Mbeam = (ld.oper * n(s.L)) / 4;
   const pmGE = r.info.Pc ? r.info.Pr / r.info.Pc >= 0.2 : false;
   return (
     <div className="report-sheet">
@@ -311,6 +450,14 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
 
       <section className="rpt-section">
         <h2>2. Data Input</h2>
+        <div>
+          <h3>Beban pipa</h3>
+          <div className="rpt-kv">
+            <div className="rpt-kv-item"><span>sumber beban</span><b>{r.info.trial ? 'Trial (dihitung dari span)' : 'Manual (dari divisi piping)'}</b></div>
+            <div className="rpt-kv-item"><span>diameter pipa (in)</span><b>{s.Dpipe}</b></div>
+            {r.info.trial && <div className="rpt-kv-item"><span>panjang span (m)</span><b>{s.span}</b></div>}
+          </div>
+        </div>
         {GROUPS.map(([title, fields]) => (
           <div key={title}>
             <h3>{title}</h3>
@@ -328,9 +475,33 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
 
       <section className="rpt-section">
         <h2>4. Kombinasi Beban</h2>
+        {r.info.trial && (
+          <p className="rpt-note2">
+            Beban pipa dihitung <b>otomatis dari span {f(s.span)} m &amp; diameter {s.Dpipe}″</b>
+            (berat {f(r.info.pl.row.empty)} / {f(r.info.pl.row.pw)} kg/m untuk kondisi kosong / penuh air,
+            ref. <i>trial pipa.xlsx</i>): F<sub>y</sub> = (kg/m)·span·9.81/1000. Test = operasi (pipa penuh air);
+            termal F<sub>x</sub> = max(7.5% ; 30%)·test, F<sub>z</sub> = 0.25·F<sub>x</sub>.
+          </p>
+        )}
+        <h3>4.1 Resume Beban Pipa (Fy vertikal, termal lateral)</h3>
+        <table className="rpt-table">
+          <thead><tr><th>Kondisi</th><th>Kosong</th><th>Operasi</th><th>Test/Hydro</th><th>Termal Fx</th><th>Termal Fz</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Beban (kN)</td>
+              <td className="num">{f(ld.empty)}</td>
+              <td className="num">{f(ld.oper)}</td>
+              <td className="num">{f(ld.test)}</td>
+              <td className="num">{f(ld.Tx)}</td>
+              <td className="num">{f(ld.Tz)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3>4.2 Definisi Beban</h3>
         <ItemsTable head={['Notasi', 'Deskripsi beban']} rows={[
-          ['P(o) / P(t)', `Beban pipa operasi / test = ${f(s.P_oper)} / ${f(s.P_test)} kN`],
-          ['T(x), T(z)', `Beban termal arah X / Z = ${f(s.Tx)} / ${f(s.Tz)} kN`],
+          ['P(e)', `Beban kosong (pipa saja) = ${f(ld.empty)} kN`],
+          ['P(o) / P(t)', `Beban operasi / test = ${f(ld.oper)} / ${f(ld.test)} kN`],
+          ['T(x), T(z)', `Beban termal arah X / Z = ${f(ld.Tx)} / ${f(ld.Tz)} kN`],
           ['W', `Beban angin (V = ${f(s.V)} m/s, min ${f(s.Pmin)} kN/m²)`],
           ['E', `Beban gempa (SDS = ${f(s.SDS)} g, Cs·P + 0.14·SDS vertikal)`],
         ]} />
@@ -389,7 +560,7 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
             sub={<>max(0.044·{f(s.SDS, 3)}·{f(s.Ie)} ; 0.01)</>} val={f(r.info.CsMin, 3)} />
           <Step desc="Gaya gempa lateral"
             expr={<>F<sub>E</sub> = C<sub>s</sub>·P<sub>oper</sub></>}
-            sub={<>{f(r.info.CsUse, 3)}·{f(s.P_oper)}</>} val={f(r.info.Fseis)} unit="kN" />
+            sub={<>{f(r.info.CsUse, 3)}·{f(ld.oper)}</>} val={f(r.info.Fseis)} unit="kN" />
         </DerivGroup>
 
         <DerivGroup title="Properti penampang pipa baja">
@@ -402,10 +573,10 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
         <DerivGroup title="Gaya dalam (model kantilever)">
           <Step desc="Aksial maks (amplifikasi vertikal 1+0.14·SDS)"
             expr={<>P<sub>r</sub> = max(P<sub>oper</sub>·(1+0.14·S<sub>DS</sub>) ; P<sub>test</sub>)</>}
-            sub={<>max({f(s.P_oper)}·{f(r.info.seisAmp, 3)} ; {f(s.P_test)})</>} val={f(r.info.Pr)} unit="kN" />
+            sub={<>max({f(ld.oper)}·{f(r.info.seisAmp, 3)} ; {f(ld.test)})</>} val={f(r.info.Pr)} unit="kN" />
           <Step desc="Resultan gaya lateral (termal + angin)"
             expr={<>H = √((|T<sub>x</sub>|+F<sub>w</sub>)² + T<sub>z</sub>²)</>}
-            sub={<>√(({f(Math.abs(n(s.Tx)))}+{f(r.info.Fwind)})² + {f(Math.abs(n(s.Tz)))}²)</>} val={f(r.info.Hlat)} unit="kN" />
+            sub={<>√(({f(Math.abs(ld.Tx))}+{f(r.info.Fwind)})² + {f(Math.abs(ld.Tz))}²)</>} val={f(r.info.Hlat)} unit="kN" />
           <Step desc="Momen dasar kolom" refs="statika kantilever"
             expr={<>M = H·H<sub>tot</sub></>} sub={<>{f(r.info.Hlat)}·{f(r.info.Htot)}</>} val={f(r.info.Mr)} unit="kNm" />
         </DerivGroup>
@@ -443,7 +614,7 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
         </DerivGroup>
 
         <div className="fd-row">
-          <BeamForceDiagram L={n(s.L)} P={n(s.P_oper)} Mmax={Mbeam} />
+          <BeamForceDiagram L={n(s.L)} P={ld.oper} Mmax={Mbeam} />
         </div>
         <p className="rpt-note2">Beam = balok sederhana dengan beban pipa terpusat di tengah (defleksi δ<sub>v</sub> = P·L³/48EI).</p>
       </section>
