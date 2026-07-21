@@ -21,7 +21,8 @@
       "Bash(python -c \"import markitdown; print\\('ok'\\)\")",
       "Bash(python -c ' *)",
       "Bash(python -m pip install openpyxl --quiet)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(python build_reka_3d.py)"
     ]
   }
 }

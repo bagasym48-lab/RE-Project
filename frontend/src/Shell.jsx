@@ -9,11 +9,11 @@ import Ic from './Icons.jsx';
 // Urutan disiplin (atas→bawah): Process, Mechanical, Piping, Electrical, Instrument, Civil.
 // `acc` = warna aksen ikon di sidebar (varian cerah agar terbaca di latar navy).
 const DISCIPLINES = [
-  { id: 'process', label: 'Process', icon: 'process', count: 3, soon: true, acc: '#a78bfa' },
-  { id: 'mechanical', label: 'Mechanical', icon: 'mechanical', count: 4, soon: true, acc: '#4ade80' },
-  { id: 'piping', label: 'Piping', icon: 'piping', count: 4, soon: true, acc: '#fb923c' },
-  { id: 'electrical', label: 'Electrical', icon: 'electrical', count: 4, soon: true, acc: '#fbbf24' },
-  { id: 'instrument', label: 'Instrument', icon: 'instrument', count: 3, soon: true, acc: '#22d3ee' },
+  { id: 'process', label: 'Process', icon: 'process', soon: true, acc: '#a78bfa' },
+  { id: 'mechanical', label: 'Mechanical', icon: 'mechanical', soon: true, acc: '#4ade80' },
+  { id: 'piping', label: 'Piping', icon: 'piping', soon: true, acc: '#fb923c' },
+  { id: 'electrical', label: 'Electrical', icon: 'electrical', soon: true, acc: '#fbbf24' },
+  { id: 'instrument', label: 'Instrument', icon: 'instrument', soon: true, acc: '#22d3ee' },
   { id: 'civil', label: 'Civil', icon: 'civil', count: 3, soon: false, acc: '#38bdf8' },
 ];
 
