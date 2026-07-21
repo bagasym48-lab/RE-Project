@@ -63,7 +63,7 @@ export default function Dashboard({ nama, userId, onOpen }) {
   try { const lt = localStorage.getItem('lastTool'); if (lt && TOOL_LABEL[lt]) lastTool = TOOL_LABEL[lt]; } catch { /* ignore */ }
 
   const stats = [
-    { icon: 'tools', acc: 'civil', val: 14, label: 'Total Tools', sub: 'Semua modul tersedia' },
+    { icon: 'tools', acc: 'civil', val: 3, label: 'Total Tools', sub: 'Semua modul tersedia' },
     { icon: 'folder', acc: 'mech', val: counts.proj, label: 'Project Aktif', sub: counts.proj ? 'Tersinkron Supabase' : 'Belum ada project' },
     { icon: 'calc', acc: 'process', val: counts.design, label: 'Desain Tersimpan', sub: 'Total perhitungan' },
     { icon: 'clock', acc: 'piping', val: lastTool, label: 'Tool Terakhir', sub: 'Lanjutkan pekerjaan', small: true },
