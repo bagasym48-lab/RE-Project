@@ -188,8 +188,9 @@ the Template/Favorites/Recycle-Bin items render a "segera hadir" placeholder. **
 holds **three** sub-tabs — `CalculatorForm` (pondasi dangkal, backend `/calculate`),
 `EquipmentFoundationForm` (pondasi equipment, **pure-frontend**), and
 `PipeSupportForm` (pipe support, **pure-frontend** simplified single-pile cantilever model from
-the FEED doc — ASCE 7 wind, SNI 1726 seismic Cs, pile Qmax/Qall & Tmax/Tall, Braja-Das pile
-settlement; STAAD/FEA remains the real reference, flagged as educational). The other disciplines render
+the FEED doc — ASCE 7 wind, SNI 1726 seismic Cs, pile checks tekan `Qmax/Qall`, tarik `Tmax/Tall`,
+**lateral `Hmax/Hall`** (`Hmax=√((|Tx|+Fw)²+Tz²)`, input `Hall`), Braja-Das pile settlement;
+STAAD/FEA remains the real reference, flagged as educational). The other disciplines render
 a "segera hadir" placeholder.
 
 **Pipe-support pipe loads have two modes** (`def.loadMode`): **`manual`** (default — operating/

@@ -2,7 +2,7 @@
 // Rumus & parameter mengacu dokumen FEED DURI-RDNL05GS40N-CIV-CAL-PHR-2001-00:
 //  • Angin  : qh = 0.613·Kz·Kzt·Kd·Ke·V² ; P = qh·G·Cf (ASCE 7-16/22)
 //  • Gempa  : Cs = SDS·Ie/R ; Cs,min = max(0.044·SDS·Ie ; 0.01) (SNI 1726:2019)
-//  • Pile   : Qmax/Qall (tekan), Tmax/Tall (tarik), Hmax=√(Hx²+Hz²)
+//  • Pile   : Qmax/Qall (tekan), Tmax/Tall (tarik), Hmax/Hall (lateral, Hmax=√(Hx²+Hz²))
 //  • Penurunan pile (elastis, Braja M. Das): se = se1 + se2 + se3 < 25 mm
 // CATATAN: hasil STAAD (rasio baja, defleksi, displacement) di dokumen berasal dari
 // FEA. Di sini dipakai model kantilever single-pile tersederhana — ALAT BANTU EDUKASI,
@@ -183,6 +183,7 @@ function compute(s) {
     displ_gempa: { demand: dhSeis, kapasitas: dhSeisAll, rasio: dhSeis / dhSeisAll, ok: dhSeis <= dhSeisAll },
     tekan_pile: { demand: Qmax, kapasitas: g('Qall'), rasio: Qmax / g('Qall'), ok: Qmax <= g('Qall') },
     tarik_pile: { demand: noTension ? 0 : -Tmax, kapasitas: g('Tall'), rasio: noTension ? 0 : -Tmax / g('Tall'), ok: noTension || -Tmax <= g('Tall'), noTension },
+    lateral_pile: { demand: Hmax, kapasitas: g('Hall'), rasio: g('Hall') ? Hmax / g('Hall') : 0, ok: Hmax <= g('Hall') },
     penurunan_pile: { demand: se, kapasitas: 25, rasio: se / 25, ok: se < 25 },
   };
   const overall_ok = Object.values(checks).every((c) => c.ok);
@@ -204,6 +205,7 @@ const LABELS = {
   displ_gempa: 'Displacement horizontal — gempa (mm)',
   tekan_pile: 'Kapasitas tekan pile (kN)',
   tarik_pile: 'Kapasitas tarik pile (kN)',
+  lateral_pile: 'Kapasitas lateral pile (kN)',
   penurunan_pile: 'Penurunan pile (mm)',
 };
 
@@ -302,6 +304,7 @@ const GROUPS = [
   ['Pondasi pile', [
     ['Dpile', 'Ø pile (m)'], ['Lpile', 'panjang pile (m)'],
     ['Qall', 'kapasitas tekan izin (kN)'], ['Tall', 'kapasitas tarik izin (kN)'],
+    ['Hall', 'kapasitas lateral izin (kN)'],
   ]],
   ['Tanah & penurunan', [
     ['N', 'N-SPT'], ['mu', 'poisson μ'], ['Iwp', 'faktor Iwp'], ['xi', 'magnitude ξ'],
@@ -413,7 +416,7 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
         ['4. Kombinasi Beban', []],
         ['5. Data Struktur & Analisis Beban', ['5.1 Data Penampang & Member', 'Beban angin & gempa', 'Gaya dalam']],
         ['6. Cek Kapasitas & Kelayanan Struktur', ['Rasio interaksi (AISC)', 'Defleksi & displacement']],
-        ['7. Penurunan Pile', []],
+        ['7. Kapasitas & Penurunan Pile', ['Kapasitas pile (tekan, tarik, lateral)', 'Penurunan pile']],
         ['8. Rekapitulasi Pengecekan', []],
       ]} />
       <ReportPaged header={
@@ -444,6 +447,7 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
           [<>Poisson tanah μ</>, `${f(s.mu)}`],
           [<>Kapasitas izin pile — tekan Q<sub>all</sub></>, `${f(s.Qall)} kN`],
           [<>Kapasitas izin pile — tarik T<sub>all</sub></>, `${f(s.Tall)} kN`],
+          [<>Kapasitas izin pile — lateral H<sub>all</sub></>, `${f(s.Hall)} kN`],
           ['Batas penurunan pile', '25 mm'],
         ]} />
       </section>
@@ -620,7 +624,24 @@ function PipeReportSheet({ s, r, project, engineerName, qcName }) {
       </section>
 
       <section className="rpt-section">
-        <h2>7. Penurunan Pile</h2>
+        <h2>7. Kapasitas &amp; Penurunan Pile</h2>
+
+        <DerivGroup title="Kapasitas daya dukung pile (tekan, tarik, lateral)" refs="single-pile · kapasitas izin dari data pile">
+          <Step desc="Tekan aksial — gaya aksial maksimum vs kapasitas izin"
+            expr={<>Q<sub>max</sub> = P<sub>r</sub> ≤ Q<sub>all</sub></>}
+            sub={<>{f(r.info.Pr)} / {f(s.Qall)} → rasio {f(r.checks.tekan_pile.rasio, 3)}</>}
+            val={f(r.info.Pr)} unit="kN" ok={r.checks.tekan_pile.ok} />
+          <Step desc="Tarik — vertikal teringan (pipa kosong); uplift bila negatif"
+            expr={<>T<sub>max</sub> = min(P<sub>kosong</sub>, P<sub>oper</sub>, P<sub>test</sub>) ; |T| ≤ T<sub>all</sub></>}
+            sub={r.info.noTension
+              ? <>T<sub>max</sub> = {f(r.info.Tmax)} kN &gt; 0 → tanpa tarik (tekan)</>
+              : <>{f(-r.info.Tmax)} / {f(s.Tall)} → rasio {f(r.checks.tarik_pile.rasio, 3)}</>}
+            ok={r.checks.tarik_pile.ok} />
+          <Step desc="Lateral — resultan gaya lateral (termal + angin) vs kapasitas izin" refs="H = √((|Tx|+Fw)² + Tz²)"
+            expr={<>H<sub>max</sub> = √((|T<sub>x</sub>|+F<sub>w</sub>)² + T<sub>z</sub>²) ≤ H<sub>all</sub></>}
+            sub={<>{f(r.info.Hmax)} / {f(s.Hall)} → rasio {f(r.checks.lateral_pile.rasio, 3)}</>}
+            val={f(r.info.Hmax)} unit="kN" ok={r.checks.lateral_pile.ok} />
+        </DerivGroup>
 
         <DerivGroup title="Penurunan pile (elastis)" refs="Braja M. Das (1988)">
           <Step desc="Penurunan batang pile" expr={<>s<sub>e1</sub> = (Q<sub>wp</sub>+ξ·Q<sub>ws</sub>)·L<sub>p</sub> / (A<sub>p</sub>·E<sub>p</sub>)</>} val={f(r.info.se1)} unit="mm" />

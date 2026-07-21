@@ -20,7 +20,8 @@
       "Bash(markitdown \"trial pipa.xlsx\")",
       "Bash(python -c \"import markitdown; print\\('ok'\\)\")",
       "Bash(python -c ' *)",
-      "Bash(python -m pip install openpyxl --quiet)"
+      "Bash(python -m pip install openpyxl --quiet)",
+      "Bash(npm run *)"
     ]
   }
 }
