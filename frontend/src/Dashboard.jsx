@@ -9,15 +9,15 @@ const TOOL_LABEL = { calc: 'Kalkulator Pondasi', mto: 'MTO', progress: 'Progress
 // Urutan kartu mengikuti sidebar: Process, Mechanical, Piping, Electrical, Instrument, Civil.
 const DISC_CARDS = [
   { id: 'process', label: 'Process', desc: 'Kalkulasi teknik proses', acc: 'process', icon: 'process', live: false,
-    feats: ['3 Tools', '2 Calculator', '1 Reference Module'], cta: 'Lihat Process' },
+    feats: ['- Tools', '- Calculator', '- Reference Module'], cta: 'Lihat Process' },
   { id: 'mechanical', label: 'Mechanical', desc: 'Tools & utilitas teknik mesin', acc: 'mech', icon: 'mechanical', live: false,
-    feats: ['4 Tools', '3 Calculator', '1 Helper Module'], cta: 'Lihat Mechanical' },
+    feats: ['- Tools', '- Calculator', '- Helper Module'], cta: 'Lihat Mechanical' },
   { id: 'piping', label: 'Piping', desc: 'Tools & kalkulasi perpipaan', acc: 'piping', icon: 'piping', live: false,
-    feats: ['4 Tools', '3 Calculator', '2 Helper Module'], cta: 'Lihat Piping' },
+    feats: ['- Tools', '- Calculator', '- Helper Module'], cta: 'Lihat Piping' },
   { id: 'electrical', label: 'Electrical', desc: 'Tools & kalkulasi teknik elektro', acc: 'elec', icon: 'electrical', live: false,
-    feats: ['4 Tools', '3 Calculator', '1 Helper Module'], cta: 'Lihat Electrical' },
+    feats: ['- Tools', '- Calculator', '- Helper Module'], cta: 'Lihat Electrical' },
   { id: 'instrument', label: 'Instrument', desc: 'Tools & kalkulasi instrumentasi', acc: 'inst', icon: 'instrument', live: false,
-    feats: ['3 Tools', '2 Calculator', '1 Reference Module'], cta: 'Lihat Instrument' },
+    feats: ['- Tools', '- Calculator', '- Reference Module'], cta: 'Lihat Instrument' },
   { id: 'civil', label: 'Civil', desc: 'Kalkulasi & tools teknik sipil', acc: 'civil', icon: 'civil', live: true,
     feats: ['3 Tools', '3 Calculator', '1 Progress Module'], cta: 'Buka Civil Dashboard' },
 ];
